@@ -20,22 +20,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // MongoDBSpec defines the desired state of MongoDB
 type MongoDBSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of MongoDB. Edit mongodb_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	KubernetesConfig  KubernetesConfig           `json:"kubernetesConfig"`
+	Storage           *Storage                   `json:"storage,omitempty"`
 }
 
 // MongoDBStatus defines the observed state of MongoDB
 type MongoDBStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	MongoDB MongoDBSpec `json:"mongodb,omitempty"`
 }
 
 //+kubebuilder:object:root=true
