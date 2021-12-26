@@ -1,0 +1,24 @@
+# permissions for end users to edit mongodbclusters.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: mongodbcluster-editor-role
+rules:
+- apiGroups:
+  - opstreelabs.in
+  resources:
+  - mongodbclusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - opstreelabs.in
+  resources:
+  - mongodbclusters/status
+  verbs:
+  - get

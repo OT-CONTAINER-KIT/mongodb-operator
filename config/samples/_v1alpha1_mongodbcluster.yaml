@@ -1,0 +1,6 @@
+apiVersion: opstreelabs.in/v1alpha1
+kind: MongoDBCluster
+metadata:
+  name: mongodbcluster-sample
+spec:
+  # Add fields here
