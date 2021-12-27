@@ -87,6 +87,22 @@ spec:
                 required:
                 - image
                 type: object
+              mongoDBSecurity:
+                description: MongoDBSecurity is the JSON struct for MongoDB security
+                  configuration
+                properties:
+                  mongoDBAdminUser:
+                    type: string
+                  secretRef:
+                    description: ExistingPasswordSecret is the struct to access the
+                      existing secret
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        type: string
+                    type: object
+                type: object
               storage:
                 description: Storage is the inteface to add pvc and pv support in
                   MongoDB
@@ -161,6 +177,22 @@ spec:
                         type: object
                     required:
                     - image
+                    type: object
+                  mongoDBSecurity:
+                    description: MongoDBSecurity is the JSON struct for MongoDB security
+                      configuration
+                    properties:
+                      mongoDBAdminUser:
+                        type: string
+                      secretRef:
+                        description: ExistingPasswordSecret is the struct to access
+                          the existing secret
+                        properties:
+                          key:
+                            type: string
+                          name:
+                            type: string
+                        type: object
                     type: object
                   storage:
                     description: Storage is the inteface to add pvc and pv support

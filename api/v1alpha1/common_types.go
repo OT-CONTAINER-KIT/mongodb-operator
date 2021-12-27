@@ -12,6 +12,12 @@ type KubernetesConfig struct {
 	ImagePullSecrets *[]corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 }
 
+// MongoDBSecurity is the JSON struct for MongoDB security configuration
+type MongoDBSecurity struct {
+	MongoDBAdminUser string                 `json:"mongoDBAdminUser,omitempty"`
+	SecretRef        ExistingPasswordSecret `json:"secretRef,omitempty"`
+}
+
 // ExistingPasswordSecret is the struct to access the existing secret
 type ExistingPasswordSecret struct {
 	Name *string `json:"name,omitempty"`
