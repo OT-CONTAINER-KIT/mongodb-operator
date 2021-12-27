@@ -18,11 +18,16 @@ package controllers
 
 import (
 	"context"
+	"time"
 
+	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	"mongodb-operator/k8sgo"
 
 	opstreelabsinv1alpha1 "mongodb-operator/api/v1alpha1"
 )
@@ -30,28 +35,38 @@ import (
 // MongoDBReconciler reconciles a MongoDB object
 type MongoDBReconciler struct {
 	client.Client
+	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
 
 //+kubebuilder:rbac:groups=opstreelabs.in,resources=mongodbs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=opstreelabs.in,resources=mongodbs/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=opstreelabs.in,resources=mongodbs/finalizers,verbs=update
+//+kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=configmaps;events,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the MongoDB object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.10.0/pkg/reconcile
 func (r *MongoDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
-
-	// your logic here
-
-	return ctrl.Result{}, nil
+	// reqLogger := r.Log.WithValues("Request.Namespace", req.NamespacedName)
+	instance := &opstreelabsinv1alpha1.MongoDB{}
+	err := r.Client.Get(context.TODO(), req.NamespacedName, instance)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{}, err
+	}
+	if err := controllerutil.SetControllerReference(instance, instance, r.Scheme); err != nil {
+		return ctrl.Result{}, err
+	}
+	// reqLogger.Info("Reconciling Opstree MongoDB controller")
+	err = k8sgo.CreateMongoStandaloneSetup(instance)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	// reqLogger.Info("Will reconcile mongodb operator in again 10 seconds")
+	return ctrl.Result{RequeueAfter: time.Second * 10}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

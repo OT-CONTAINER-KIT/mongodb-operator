@@ -1,26 +1,20 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  labels:
-    control-plane: controller-manager
-  name: system
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: controller-manager
-  namespace: system
+  name: mongodb-operator
+  namespace: ot-operators
   labels:
-    control-plane: controller-manager
+    control-plane: mongodb-operator
 spec:
   selector:
     matchLabels:
-      control-plane: controller-manager
+      control-plane: mongodb-operator
   replicas: 1
   template:
     metadata:
       labels:
-        control-plane: controller-manager
+        control-plane: mongodb-operator
     spec:
       securityContext:
         runAsNonRoot: true
@@ -29,7 +23,8 @@ spec:
         - /manager
         args:
         - --leader-elect
-        image: controller:latest
+        image: quay.io/opstree/mongodb-operator:v0.1.0
+        imagePullPolicy: Always
         name: manager
         securityContext:
           allowPrivilegeEscalation: false
@@ -48,9 +43,9 @@ spec:
         resources:
           limits:
             cpu: 200m
-            memory: 100Mi
+            memory: 400Mi
           requests:
-            cpu: 100m
-            memory: 20Mi
-      serviceAccountName: controller-manager
+            cpu: 200m
+            memory: 400Mi
+      serviceAccountName: mongodb-operator
       terminationGracePeriodSeconds: 10
