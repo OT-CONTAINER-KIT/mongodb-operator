@@ -2,7 +2,7 @@
 apiVersion: opstreelabs.in/v1alpha1
 kind: MongoDB
 metadata:
-  name: mongodb-standalone
+  name: mongodb
 spec:
   kubernetesConfig:
     image: quay.io/opstree/mongodb:v5.0.5
@@ -10,4 +10,4 @@ spec:
   storage:
     accessModes: ["ReadWriteOnce"]
     storageSize: 1Gi
-    storageClass: standard 
+    storageClass: csi-cephfs-sc 

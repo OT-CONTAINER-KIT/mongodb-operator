@@ -20,14 +20,14 @@ func getMongoDBStandaloneParams(cr *opstreelabsinv1alpha1.MongoDB) statefulSetPa
 	replicas := int32(1)
 	trueProperty := true
 	falseProperty := false
-	appName := fmt.Sprintf("cr.ObjectMeta.Name-%s", "standalone")
+	appName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "standalone")
 	labels := map[string]string{
 		"app":           appName,
 		"mongodb_setup": "standalone",
 		"role":          "standalone",
 	}
 	params := statefulSetParameters{
-		StatefulSetMeta: generateObjectMetaInformation(cr.ObjectMeta.Name, cr.Namespace, labels, generateAnnotations()),
+		StatefulSetMeta: generateObjectMetaInformation(appName, cr.Namespace, labels, generateAnnotations()),
 		OwnerDef:        mongoAsOwner(cr),
 		Namespace:       cr.Namespace,
 		ContainerParams: containerParameters{
