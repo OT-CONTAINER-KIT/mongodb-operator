@@ -5,7 +5,34 @@ import (
 	opstreelabsinv1alpha1 "mongodb-operator/api/v1alpha1"
 )
 
-// CreateMongoStandaloneSetup
+// CreateMongoStandaloneService is a method to create standalone service for MongoDB
+func CreateMongoStandaloneService(cr *opstreelabsinv1alpha1.MongoDB) error {
+	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "Service")
+	appName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "standalone")
+	labels := map[string]string{
+		"app":           appName,
+		"mongodb_setup": "standalone",
+		"role":          "standalone",
+	}
+	params := serviceParameters{
+		ServiceMeta:     generateObjectMetaInformation(appName, cr.Namespace, labels, generateAnnotations()),
+		OwnerDef:        mongoAsOwner(cr),
+		Namespace:       cr.Namespace,
+		Labels:          labels,
+		Annotations:     generateAnnotations(),
+		HeadlessService: true,
+		Port:            mongoDBPort,
+		PortName:        "mongo",
+	}
+	err := CreateOrUpdateService(params)
+	if err != nil {
+		logger.Error(err, "Cannot create standalone service for MongoDB")
+		return err
+	}
+	return nil
+}
+
+// CreateMongoStandaloneSetup is a method to create standalone statefulset for MongoDB
 func CreateMongoStandaloneSetup(cr *opstreelabsinv1alpha1.MongoDB) error {
 	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "StatefulSet")
 	err := CreateOrUpdateStateFul(getMongoDBStandaloneParams(cr))

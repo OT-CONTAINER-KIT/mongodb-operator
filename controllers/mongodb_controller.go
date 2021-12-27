@@ -44,7 +44,7 @@ type MongoDBReconciler struct {
 //+kubebuilder:rbac:groups=opstreelabs.in,resources=mongodbs/finalizers,verbs=update
 //+kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=configmaps;events,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=configmaps;events;services,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 func (r *MongoDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -62,6 +62,10 @@ func (r *MongoDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	}
 	// reqLogger.Info("Reconciling Opstree MongoDB controller")
 	err = k8sgo.CreateMongoStandaloneSetup(instance)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	err = k8sgo.CreateMongoStandaloneService(instance)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
