@@ -60,12 +60,18 @@ func getMongoDBStandaloneParams(cr *opstreelabsinv1alpha1.MongoDB) statefulSetPa
 		ContainerParams: containerParameters{
 			Image:           cr.Spec.KubernetesConfig.Image,
 			ImagePullPolicy: cr.Spec.KubernetesConfig.ImagePullPolicy,
+			Resources:       cr.Spec.KubernetesConfig.Resources,
 		},
 		Replicas:    &replicas,
 		Labels:      labels,
 		Annotations: generateAnnotations(),
 	}
 
+	if cr.Spec.MongoDBSecurity != nil {
+		params.ContainerParams.MongoDBUser = &cr.Spec.MongoDBSecurity.MongoDBAdminUser
+		params.ContainerParams.SecretName = cr.Spec.MongoDBSecurity.SecretRef.Name
+		params.ContainerParams.SecretKey = cr.Spec.MongoDBSecurity.SecretRef.Key
+	}
 	if cr.Spec.Storage != nil {
 		params.ContainerParams.PersistenceEnabled = &trueProperty
 		params.PVCParameters = pvcParameters{
