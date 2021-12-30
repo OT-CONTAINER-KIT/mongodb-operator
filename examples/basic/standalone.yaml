@@ -18,11 +18,11 @@ spec:
     accessModes: ["ReadWriteOnce"]
     storageSize: 1Gi
     storageClass: csi-cephfs-sc 
-   mongoDBSecurity:
-     mongoDBAdminUser: admin
-     secretRef:
-       name: mongodb-secret
-       key: password
+  mongoDBSecurity:
+    mongoDBAdminUser: admin
+    secretRef:
+      name: mongodb-secret
+      key: password
   mongoDBMonitoring:
     enableExporter: true
     image: percona/mongodb_exporter:0.20
