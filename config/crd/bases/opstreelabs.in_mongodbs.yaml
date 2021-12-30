@@ -87,6 +87,20 @@ spec:
                 required:
                 - image
                 type: object
+              mongoDBMonitoring:
+                description: MongoDBMonitoring is the JSON struct for monitoring MongoDB
+                properties:
+                  enableExporter:
+                    type: boolean
+                  image:
+                    type: string
+                  imagePullPolicy:
+                    description: PullPolicy describes a policy for if/when to pull
+                      a container image
+                    type: string
+                required:
+                - image
+                type: object
               mongoDBSecurity:
                 description: MongoDBSecurity is the JSON struct for MongoDB security
                   configuration
@@ -102,6 +116,9 @@ spec:
                       name:
                         type: string
                     type: object
+                required:
+                - mongoDBAdminUser
+                - secretRef
                 type: object
               storage:
                 description: Storage is the inteface to add pvc and pv support in
@@ -118,6 +135,7 @@ spec:
                 type: object
             required:
             - kubernetesConfig
+            - mongoDBSecurity
             type: object
           status:
             description: MongoDBStatus defines the observed state of MongoDB
@@ -178,6 +196,21 @@ spec:
                     required:
                     - image
                     type: object
+                  mongoDBMonitoring:
+                    description: MongoDBMonitoring is the JSON struct for monitoring
+                      MongoDB
+                    properties:
+                      enableExporter:
+                        type: boolean
+                      image:
+                        type: string
+                      imagePullPolicy:
+                        description: PullPolicy describes a policy for if/when to
+                          pull a container image
+                        type: string
+                    required:
+                    - image
+                    type: object
                   mongoDBSecurity:
                     description: MongoDBSecurity is the JSON struct for MongoDB security
                       configuration
@@ -193,6 +226,9 @@ spec:
                           name:
                             type: string
                         type: object
+                    required:
+                    - mongoDBAdminUser
+                    - secretRef
                     type: object
                   storage:
                     description: Storage is the inteface to add pvc and pv support
@@ -209,6 +245,7 @@ spec:
                     type: object
                 required:
                 - kubernetesConfig
+                - mongoDBSecurity
                 type: object
             type: object
         type: object
