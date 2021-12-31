@@ -44,11 +44,10 @@ type MongoDBReconciler struct {
 //+kubebuilder:rbac:groups=opstreelabs.in,resources=mongodbs/finalizers,verbs=update
 //+kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=configmaps;events;services,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=configmaps;events;services;secrets,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 func (r *MongoDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	// reqLogger := r.Log.WithValues("Request.Namespace", req.NamespacedName)
 	instance := &opstreelabsinv1alpha1.MongoDB{}
 	err := r.Client.Get(context.TODO(), req.NamespacedName, instance)
 	if err != nil {
@@ -60,7 +59,10 @@ func (r *MongoDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err := controllerutil.SetControllerReference(instance, instance, r.Scheme); err != nil {
 		return ctrl.Result{}, err
 	}
-	// reqLogger.Info("Reconciling Opstree MongoDB controller")
+	err = k8sgo.CreateMongoMonitoringSecret(instance)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 	err = k8sgo.CreateMongoStandaloneSetup(instance)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -69,7 +71,6 @@ func (r *MongoDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	// reqLogger.Info("Will reconcile mongodb operator in again 10 seconds")
 	return ctrl.Result{RequeueAfter: time.Second * 10}, nil
 }
 

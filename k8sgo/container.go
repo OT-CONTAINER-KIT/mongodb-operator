@@ -13,6 +13,7 @@ type containerParameters struct {
 	MongoDBUser        *string
 	SecretName         *string
 	SecretKey          *string
+	MongoDBMonitoring  *bool
 }
 
 // generateContainerDef is to generate container definition for MongoDB
@@ -69,4 +70,13 @@ func getEnvironmentVariables(params containerParameters) []corev1.EnvVar {
 		}
 	}
 	return envVars
+}
+
+// getMongoDBExporterDef is a method to generate MongoDB Exporter
+func getMongoDBExporterDef(params containerParameters) corev1.Container {
+	return corev1.Container{
+		Name:            "mongo-exporter",
+		Image:           params.Image,
+		ImagePullPolicy: params.ImagePullPolicy,
+	}
 }
