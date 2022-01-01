@@ -18,8 +18,12 @@ spec:
     accessModes: ["ReadWriteOnce"]
     storageSize: 1Gi
     storageClass: csi-cephfs-sc 
-  # mongoDBSecurity:
-  #   mongoDBAdminUser: admin
-  #   secretRef:
-  #     name: mongodb-secret
-  #     key: password
+  mongoDBSecurity:
+    mongoDBAdminUser: admin
+    secretRef:
+      name: mongodb-secret
+      key: password
+  mongoDBMonitoring:
+    enableExporter: true
+    image: bitnami/mongodb-exporter:0.11.2-debian-10-r382
+    imagePullPolicy: IfNotPresent

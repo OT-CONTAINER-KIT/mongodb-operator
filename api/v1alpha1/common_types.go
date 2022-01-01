@@ -14,8 +14,16 @@ type KubernetesConfig struct {
 
 // MongoDBSecurity is the JSON struct for MongoDB security configuration
 type MongoDBSecurity struct {
-	MongoDBAdminUser string                 `json:"mongoDBAdminUser,omitempty"`
-	SecretRef        ExistingPasswordSecret `json:"secretRef,omitempty"`
+	MongoDBAdminUser string                 `json:"mongoDBAdminUser"`
+	SecretRef        ExistingPasswordSecret `json:"secretRef"`
+}
+
+// MongoDBMonitoring is the JSON struct for monitoring MongoDB
+type MongoDBMonitoring struct {
+	EnableExporter  bool                         `json:"enableExporter,omitempty"`
+	Image           string                       `json:"image"`
+	ImagePullPolicy corev1.PullPolicy            `json:"imagePullPolicy,omitempty"`
+	Resources       *corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 // ExistingPasswordSecret is the struct to access the existing secret

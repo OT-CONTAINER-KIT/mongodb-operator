@@ -2,6 +2,7 @@ package k8sgo
 
 import (
 	"fmt"
+	"github.com/thanhpk/randstr"
 	opstreelabsinv1alpha1 "mongodb-operator/api/v1alpha1"
 )
 
@@ -26,7 +27,7 @@ func CreateMongoStandaloneService(cr *opstreelabsinv1alpha1.MongoDB) error {
 	}
 	err := CreateOrUpdateService(params)
 	if err != nil {
-		logger.Error(err, "Cannot create standalone service for MongoDB")
+		logger.Error(err, "Cannot create standalone Service for MongoDB")
 		return err
 	}
 	return nil
@@ -43,11 +44,44 @@ func CreateMongoStandaloneSetup(cr *opstreelabsinv1alpha1.MongoDB) error {
 	return nil
 }
 
+// func CreateMongoMonitoringSecret is a method to create secret for monitoring
+func CreateMongoMonitoringSecret(cr *opstreelabsinv1alpha1.MongoDB) error {
+	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "Secret")
+	err := CreateSecret(getMongoDBSecretParams(cr))
+	if err != nil {
+		logger.Error(err, "Cannot create mongodb monitoring secret")
+		return err
+	}
+	return nil
+}
+
+// getMongoDBSecretParams is a method to create secret for MongoDB Monitoring
+func getMongoDBSecretParams(cr *opstreelabsinv1alpha1.MongoDB) secretsParameters {
+	password := randstr.String(16)
+	appName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "standalone-monitoring")
+	labels := map[string]string{
+		"app":           appName,
+		"mongodb_setup": "standalone",
+		"role":          "standalone",
+	}
+	params := secretsParameters{
+		SecretsMeta: generateObjectMetaInformation(appName, cr.Namespace, labels, generateAnnotations()),
+		OwnerDef:    mongoAsOwner(cr),
+		Namespace:   cr.Namespace,
+		Labels:      labels,
+		Annotations: generateAnnotations(),
+		Password:    password,
+		Name:        appName,
+	}
+	return params
+}
+
 func getMongoDBStandaloneParams(cr *opstreelabsinv1alpha1.MongoDB) statefulSetParameters {
 	replicas := int32(1)
 	trueProperty := true
 	falseProperty := false
 	appName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "standalone")
+	monitoringSecretName := fmt.Sprintf("%s-%s", appName, "monitoring")
 	labels := map[string]string{
 		"app":           appName,
 		"mongodb_setup": "standalone",
@@ -71,6 +105,13 @@ func getMongoDBStandaloneParams(cr *opstreelabsinv1alpha1.MongoDB) statefulSetPa
 		params.ContainerParams.MongoDBUser = &cr.Spec.MongoDBSecurity.MongoDBAdminUser
 		params.ContainerParams.SecretName = cr.Spec.MongoDBSecurity.SecretRef.Name
 		params.ContainerParams.SecretKey = cr.Spec.MongoDBSecurity.SecretRef.Key
+	}
+	if cr.Spec.MongoDBMonitoring != nil {
+		params.ContainerParams.MongoDBMonitoring = &trueProperty
+		params.ContainerParams.MonitoringSecret = &monitoringSecretName
+		params.ContainerParams.MonitoringResources = cr.Spec.MongoDBMonitoring.Resources
+		params.ContainerParams.MonitoringImage = cr.Spec.MongoDBMonitoring.Image
+		params.ContainerParams.MonitoringImagePullPolicy = &cr.Spec.MongoDBMonitoring.ImagePullPolicy
 	}
 	if cr.Spec.Storage != nil {
 		params.ContainerParams.PersistenceEnabled = &trueProperty

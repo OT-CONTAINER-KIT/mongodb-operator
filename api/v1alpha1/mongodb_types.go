@@ -22,9 +22,10 @@ import (
 
 // MongoDBSpec defines the desired state of MongoDB
 type MongoDBSpec struct {
-	KubernetesConfig KubernetesConfig `json:"kubernetesConfig"`
-	Storage          *Storage         `json:"storage,omitempty"`
-	MongoDBSecurity  *MongoDBSecurity `json:"mongoDBSecurity,omitempty"`
+	KubernetesConfig  KubernetesConfig   `json:"kubernetesConfig"`
+	Storage           *Storage           `json:"storage,omitempty"`
+	MongoDBSecurity   *MongoDBSecurity   `json:"mongoDBSecurity"`
+	MongoDBMonitoring *MongoDBMonitoring `json:"mongoDBMonitoring,omitempty"`
 }
 
 // MongoDBStatus defines the observed state of MongoDB
