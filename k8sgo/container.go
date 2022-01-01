@@ -2,6 +2,7 @@ package k8sgo
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // containerParameters is the input struct for MongoDB container
@@ -29,6 +30,8 @@ func generateContainerDef(name string, params containerParameters) []corev1.Cont
 			ImagePullPolicy: params.ImagePullPolicy,
 			VolumeMounts:    getVolumeMount(name, params.PersistenceEnabled),
 			Env:             getEnvironmentVariables(params),
+			ReadinessProbe:  getMongoDBProbe(),
+			LivenessProbe:   getMongoDBProbe(),
 		},
 	}
 	if params.Resources != nil {
@@ -103,10 +106,47 @@ func getMongoDBExporterDef(params containerParameters) corev1.Container {
 				Value: "monitoring",
 			},
 		},
+		ReadinessProbe: getMonitoringProbe(),
+		LivenessProbe:  getMonitoringProbe(),
 	}
 
 	if params.MonitoringResources != nil {
 		containerDef.Resources = *params.MonitoringResources
 	}
 	return containerDef
+}
+
+// getMongoDBProbe is a method to generate probe info for MongoDB
+func getMongoDBProbe() *corev1.Probe {
+	return &corev1.Probe{
+		InitialDelaySeconds: 15,
+		PeriodSeconds:       15,
+		FailureThreshold:    5,
+		TimeoutSeconds:      5,
+		Handler: corev1.Handler{
+			Exec: &corev1.ExecAction{
+				Command: []string{
+					"mongo",
+					"--eval",
+					"db.adminCommand('ping')",
+				},
+			},
+		},
+	}
+}
+
+// getMonitoringProbe is a method to generate probe info for Monitoring
+func getMonitoringProbe() *corev1.Probe {
+	return &corev1.Probe{
+		InitialDelaySeconds: 15,
+		PeriodSeconds:       15,
+		FailureThreshold:    5,
+		TimeoutSeconds:      5,
+		Handler: corev1.Handler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Port: intstr.FromInt(9216),
+				Path: "/metrics",
+			},
+		},
+	}
 }
