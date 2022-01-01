@@ -55,3 +55,12 @@ func getMongoDBPassword(params secretsParameters) string {
 	value := string(secretName.Data["password"])
 	return value
 }
+
+// CheckSecretExist is a method to check secret exists
+func CheckSecretExist(namespace string, secret string) bool {
+	_, err := generateK8sClient().CoreV1().Secrets(namespace).Get(context.TODO(), secret, metav1.GetOptions{})
+	if err != nil {
+		return false
+	}
+	return true
+}

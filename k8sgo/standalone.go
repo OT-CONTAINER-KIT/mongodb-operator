@@ -81,6 +81,7 @@ func getMongoDBStandaloneParams(cr *opstreelabsinv1alpha1.MongoDB) statefulSetPa
 	trueProperty := true
 	falseProperty := false
 	appName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "standalone")
+	monitoringSecretName := fmt.Sprintf("%s-%s", appName, "monitoring")
 	labels := map[string]string{
 		"app":           appName,
 		"mongodb_setup": "standalone",
@@ -104,6 +105,13 @@ func getMongoDBStandaloneParams(cr *opstreelabsinv1alpha1.MongoDB) statefulSetPa
 		params.ContainerParams.MongoDBUser = &cr.Spec.MongoDBSecurity.MongoDBAdminUser
 		params.ContainerParams.SecretName = cr.Spec.MongoDBSecurity.SecretRef.Name
 		params.ContainerParams.SecretKey = cr.Spec.MongoDBSecurity.SecretRef.Key
+	}
+	if cr.Spec.MongoDBMonitoring != nil {
+		params.ContainerParams.MongoDBMonitoring = &trueProperty
+		params.ContainerParams.MonitoringSecret = &monitoringSecretName
+		params.ContainerParams.MonitoringResources = cr.Spec.MongoDBMonitoring.Resources
+		params.ContainerParams.MonitoringImage = cr.Spec.MongoDBMonitoring.Image
+		params.ContainerParams.MonitoringImagePullPolicy = &cr.Spec.MongoDBMonitoring.ImagePullPolicy
 	}
 	if cr.Spec.Storage != nil {
 		params.ContainerParams.PersistenceEnabled = &trueProperty

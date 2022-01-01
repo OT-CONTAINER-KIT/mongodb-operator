@@ -2,12 +2,12 @@ package mongogo
 
 import (
 	"context"
-	"github.com/thanhpk/randstr"
+	"github.com/go-logr/logr"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"os"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"time"
 )
 
 var log = logf.Log.WithName("controller_mongo")
@@ -23,10 +23,11 @@ type MongoDBParameters struct {
 	Namespace string
 	Name      string
 	Password  string
+	UserName  *string
 }
 
 // InitiateMongoClient is a method to create client connection with MongoDB
-func InitiateMongoClient(params MongoDBParameters) mongo.Client {
+func InitiateMongoClient(params MongoDBParameters) *mongo.Client {
 	logger := logGenerator(params.Name, params.Namespace, "MongoDB Client")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -38,10 +39,10 @@ func InitiateMongoClient(params MongoDBParameters) mongo.Client {
 }
 
 // DiscconnectMongoClient is a method to disconnect MongoDB client
-func DiscconnectMongoClient(client mongo.Client) error {
+func DiscconnectMongoClient(client *mongo.Client) error {
 	defer func() {
-		if err = client.Disconnect(ctx); err != nil {
-			return err
+		if err := client.Disconnect(context.Background()); err != nil {
+			return
 		}
 	}()
 	return nil
@@ -51,19 +52,34 @@ func DiscconnectMongoClient(client mongo.Client) error {
 func CreateMonitoringUser(params MongoDBParameters) error {
 	client := InitiateMongoClient(params)
 	response := client.Database(dbName).RunCommand(context.Background(), bson.D{
-		{"createUser", monitoringUser}, {"pwd", password},
+		{"createUser", monitoringUser}, {"pwd", params.Password},
 		{"roles", []bson.M{{"role": "clusterMonitor", "db": "admin"}, {"role": "read", "db": "local"}}}},
 	)
 	if response.Err() != nil {
-		logger.Error(err, "Unable to create user for MongoDB")
-		return err
+		return response.Err()
 	}
-	err = DiscconnectMongoClient(client)
-	if response.Err() != nil {
-		logger.Error(err, "Unable to disconnect from MongoDB")
+	err := DiscconnectMongoClient(client)
+	if err != nil {
 		return err
 	}
 	return nil
+}
+
+// GetMongoDBUser is a method to check if user exists in MongoDB
+func GetMongoDBUser(params MongoDBParameters) (bool, error) {
+	client := InitiateMongoClient(params)
+	collection := client.Database("admin").Collection("system.users")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	opts := options.Count().SetMaxTime(2 * time.Second)
+	docsCount, err := collection.CountDocuments(ctx, bson.D{{"user", *params.UserName}}, opts)
+	if err != nil {
+		return false, err
+	}
+	if docsCount > 0 {
+		return true, nil
+	}
+	return false, nil
 }
 
 // logGenerator is a method to generate logging interface

@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -59,13 +60,26 @@ func (r *MongoDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err := controllerutil.SetControllerReference(instance, instance, r.Scheme); err != nil {
 		return ctrl.Result{}, err
 	}
-	err = k8sgo.CreateMongoMonitoringSecret(instance)
-	if err != nil {
-		return ctrl.Result{}, err
+	if !k8sgo.CheckSecretExist(instance.Namespace, fmt.Sprintf("%s-%s", instance.ObjectMeta.Name, "standalone-monitoring")) {
+		err = k8sgo.CreateMongoMonitoringSecret(instance)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 	err = k8sgo.CreateMongoStandaloneSetup(instance)
 	if err != nil {
 		return ctrl.Result{}, err
+	}
+	mongoDBSTS, err := k8sgo.GetStateFulSet(instance.Namespace, fmt.Sprintf("%s-%s", instance.ObjectMeta.Name, "standalone"))
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if int(mongoDBSTS.Status.ReadyReplicas) != int(1) {
+		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
+	} else {
+		if !k8sgo.CheckMonitoringUser(instance) {
+			k8sgo.CreateMongoDBMonitoringUser(instance)
+		}
 	}
 	err = k8sgo.CreateMongoStandaloneService(instance)
 	if err != nil {
