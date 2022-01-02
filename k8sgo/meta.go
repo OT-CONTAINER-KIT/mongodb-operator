@@ -40,6 +40,18 @@ func mongoAsOwner(cr *mongodbv1alpha1.MongoDB) metav1.OwnerReference {
 	}
 }
 
+// mongoClusterAsOwner generates and returns object refernece
+func mongoClusterAsOwner(cr *mongodbv1alpha1.MongoDBCluster) metav1.OwnerReference {
+	trueVar := true
+	return metav1.OwnerReference{
+		APIVersion: cr.APIVersion,
+		Kind:       cr.Kind,
+		Name:       cr.Name,
+		UID:        cr.UID,
+		Controller: &trueVar,
+	}
+}
+
 // LabelSelectors generates object for label selection
 func LabelSelectors(labels map[string]string) *metav1.LabelSelector {
 	return &metav1.LabelSelector{MatchLabels: labels}

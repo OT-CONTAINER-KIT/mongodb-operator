@@ -59,7 +59,7 @@ func CreateMongoStandaloneSetup(cr *opstreelabsinv1alpha1.MongoDB) error {
 	return nil
 }
 
-// func CreateMongoMonitoringSecret is a method to create secret for monitoring
+// CreateMongoMonitoringSecret is a method to create secret for monitoring
 func CreateMongoMonitoringSecret(cr *opstreelabsinv1alpha1.MongoDB) error {
 	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "Secret")
 	err := CreateSecret(getMongoDBSecretParams(cr))
@@ -91,6 +91,7 @@ func getMongoDBSecretParams(cr *opstreelabsinv1alpha1.MongoDB) secretsParameters
 	return params
 }
 
+// getMongoDBStandaloneParams is a method to generate params for standalone
 func getMongoDBStandaloneParams(cr *opstreelabsinv1alpha1.MongoDB) statefulSetParameters {
 	replicas := int32(1)
 	trueProperty := true

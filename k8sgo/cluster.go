@@ -1,0 +1,104 @@
+package k8sgo
+
+import (
+	"fmt"
+	"github.com/thanhpk/randstr"
+	opstreelabsinv1alpha1 "mongodb-operator/api/v1alpha1"
+)
+
+// CreateMongoClusterSetup is a method to create cluster statefulset for MongoDB
+func CreateMongoClusterSetup(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
+	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "StatefulSet")
+	err := CreateOrUpdateStateFul(getMongoDBClusterParams(cr))
+	if err != nil {
+		logger.Error(err, "Cannot create cluster StatefulSet for MongoDB")
+		return err
+	}
+	return nil
+}
+
+// CreateMongoClusterMonitoringSecret is a method to create secret for monitoring
+func CreateMongoClusterMonitoringSecret(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
+	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "Secret")
+	err := CreateSecret(getMongoDBClusterSecretParams(cr))
+	if err != nil {
+		logger.Error(err, "Cannot create mongodb monitoring secret for cluster")
+		return err
+	}
+	return nil
+}
+
+// getMongoDBClusterSecretParams is a method to create secret for MongoDB Monitoring
+func getMongoDBClusterSecretParams(cr *opstreelabsinv1alpha1.MongoDBCluster) secretsParameters {
+	password := randstr.String(16)
+	appName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "cluster-monitoring")
+	labels := map[string]string{
+		"app":           appName,
+		"mongodb_setup": "cluster",
+		"role":          "cluster",
+	}
+	params := secretsParameters{
+		SecretsMeta: generateObjectMetaInformation(appName, cr.Namespace, labels, generateAnnotations()),
+		OwnerDef:    mongoClusterAsOwner(cr),
+		Namespace:   cr.Namespace,
+		Labels:      labels,
+		Annotations: generateAnnotations(),
+		Password:    password,
+		Name:        appName,
+	}
+	return params
+}
+
+// getMongoDBClusterParams is a method to generate params for cluster
+func getMongoDBClusterParams(cr *opstreelabsinv1alpha1.MongoDBCluster) statefulSetParameters {
+	trueProperty := true
+	falseProperty := false
+	appName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "cluster")
+	monitoringSecretName := fmt.Sprintf("%s-%s", appName, "monitoring")
+	labels := map[string]string{
+		"app":           appName,
+		"mongodb_setup": "cluster",
+		"role":          "cluster",
+	}
+	params := statefulSetParameters{
+		StatefulSetMeta: generateObjectMetaInformation(appName, cr.Namespace, labels, generateAnnotations()),
+		OwnerDef:        mongoClusterAsOwner(cr),
+		Namespace:       cr.Namespace,
+		ContainerParams: containerParameters{
+			Image:           cr.Spec.KubernetesConfig.Image,
+			ImagePullPolicy: cr.Spec.KubernetesConfig.ImagePullPolicy,
+			Resources:       cr.Spec.KubernetesConfig.Resources,
+		},
+		Replicas:    cr.Spec.MongoDBClusterSize,
+		Labels:      labels,
+		Annotations: generateAnnotations(),
+	}
+
+	if cr.Spec.MongoDBSecurity != nil {
+		params.ContainerParams.MongoDBUser = &cr.Spec.MongoDBSecurity.MongoDBAdminUser
+		params.ContainerParams.SecretName = cr.Spec.MongoDBSecurity.SecretRef.Name
+		params.ContainerParams.SecretKey = cr.Spec.MongoDBSecurity.SecretRef.Key
+	}
+	if cr.Spec.MongoDBMonitoring != nil {
+		params.ContainerParams.MongoDBMonitoring = &trueProperty
+		params.ContainerParams.MonitoringSecret = &monitoringSecretName
+		params.ContainerParams.MonitoringResources = cr.Spec.MongoDBMonitoring.Resources
+		params.ContainerParams.MonitoringImage = cr.Spec.MongoDBMonitoring.Image
+		params.ContainerParams.MonitoringImagePullPolicy = &cr.Spec.MongoDBMonitoring.ImagePullPolicy
+	}
+	if cr.Spec.Storage != nil {
+		params.ContainerParams.PersistenceEnabled = &trueProperty
+		params.PVCParameters = pvcParameters{
+			Name:             appName,
+			Namespace:        cr.Namespace,
+			Labels:           labels,
+			Annotations:      generateAnnotations(),
+			StorageSize:      cr.Spec.Storage.StorageSize,
+			StorageClassName: cr.Spec.Storage.StorageClassName,
+			AccessModes:      cr.Spec.Storage.AccessModes,
+		}
+	} else {
+		params.ContainerParams.PersistenceEnabled = &falseProperty
+	}
+	return params
+}
