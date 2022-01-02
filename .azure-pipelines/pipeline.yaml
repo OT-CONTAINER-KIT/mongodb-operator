@@ -1,0 +1,27 @@
+---
+trigger:
+  - main
+
+pr:
+  branches:
+    include:
+      - main
+
+variables:
+  - group: RuntimeVariables
+
+resources:
+  repositories:
+    - repository: golang-template
+      type: github
+      name: opstree/azure-devops-template
+      endpoint: OT-CONTAINER-KIT
+
+extends:
+  template: operator-ci.yaml@golang-template
+  parameters:
+    ApplicationName: mongodb-operator
+    QuayImageName: opstree/mongodb-operator
+    GithubImageName: ot-container-kit/mongodb-operator/mongodb-operator
+    BuildDocs: false
+    AppVersion: "0.1.0"
