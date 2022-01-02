@@ -48,6 +48,7 @@ func DiscconnectMongoClient(client *mongo.Client) error {
 	return nil
 }
 
+//nolint:govet
 // CreateMonitoringUser is a method to create monitoring user inside MongoDB
 func CreateMonitoringUser(params MongoDBParameters) error {
 	client := InitiateMongoClient(params)
@@ -65,6 +66,7 @@ func CreateMonitoringUser(params MongoDBParameters) error {
 	return nil
 }
 
+//nolint:govet
 // GetMongoDBUser is a method to check if user exists in MongoDB
 func GetMongoDBUser(params MongoDBParameters) (bool, error) {
 	client := InitiateMongoClient(params)

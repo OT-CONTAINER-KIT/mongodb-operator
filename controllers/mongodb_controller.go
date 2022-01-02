@@ -78,7 +78,10 @@ func (r *MongoDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 	} else {
 		if !k8sgo.CheckMonitoringUser(instance) {
-			k8sgo.CreateMongoDBMonitoringUser(instance)
+			err = k8sgo.CreateMongoDBMonitoringUser(instance)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 	}
 	err = k8sgo.CreateMongoStandaloneService(instance)
