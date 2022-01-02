@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	mongoDBPort = 27017
+	mongoDBPort           = 27017
+	mongoDBMonitoringPort = 9216
 )
 
 // serviceParameters is a structure for service inputs

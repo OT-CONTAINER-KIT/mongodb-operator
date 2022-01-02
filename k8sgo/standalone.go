@@ -30,6 +30,21 @@ func CreateMongoStandaloneService(cr *opstreelabsinv1alpha1.MongoDB) error {
 		logger.Error(err, "Cannot create standalone Service for MongoDB")
 		return err
 	}
+	monitoringParams := serviceParameters{
+		ServiceMeta:     generateObjectMetaInformation(fmt.Sprintf("%s-%s", appName, "metrics"), cr.Namespace, labels, generateAnnotations()),
+		OwnerDef:        mongoAsOwner(cr),
+		Namespace:       cr.Namespace,
+		Labels:          labels,
+		Annotations:     generateAnnotations(),
+		HeadlessService: false,
+		Port:            mongoDBMonitoringPort,
+		PortName:        "mongo-exporter",
+	}
+	err = CreateOrUpdateService(monitoringParams)
+	if err != nil {
+		logger.Error(err, "Cannot create standalone metrics Service for MongoDB")
+		return err
+	}
 	return nil
 }
 

@@ -7,10 +7,17 @@ spec:
   kubernetesConfig:
     image: quay.io/opstree/mongodb:v5.0.5
     imagePullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 101m
+        memory: 328Mi
+      limits:
+        cpu: 101m
+        memory: 328Mi
   storage:
     accessModes: ["ReadWriteOnce"]
     storageSize: 1Gi
-    storageClass: csi-cephfs-sc 
+    storageClass: csi-cephfs-sc
   mongoDBSecurity:
     mongoDBAdminUser: admin
     secretRef:
