@@ -45,6 +45,20 @@ func generateSecret(params secretsParameters) *corev1.Secret {
 	return secret
 }
 
+// generateMongoDBKeySecret is a method that will generate a secret interface for MongoDB key
+func generateMongoDBKeySecret(params secretsParameters) *corev1.Secret {
+	password := []byte(params.Password)
+	secret := &corev1.Secret{
+		TypeMeta:   generateMetaInformation("Secret", "v1"),
+		ObjectMeta: params.SecretsMeta,
+		Data: map[string][]byte{
+			"mongodb.key": password,
+		},
+	}
+	AddOwnerRefToObject(secret, params.OwnerDef)
+	return secret
+}
+
 // getMongoDBPassword method will return the mongodb password
 func getMongoDBPassword(params secretsParameters) string {
 	logger := logGenerator(params.Name, params.Namespace, "Secret")

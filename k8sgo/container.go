@@ -20,16 +20,21 @@ type containerParameters struct {
 	MonitoringImagePullPolicy *corev1.PullPolicy
 	MonitoringSecret          *string
 	MonitoringResources       *corev1.ResourceRequirements
+	ExtraVolumeMount          *corev1.VolumeMount
 }
 
 // generateContainerDef is to generate container definition for MongoDB
 func generateContainerDef(name string, params containerParameters) []corev1.Container {
+	volumeMounts := getVolumeMount(name, params.PersistenceEnabled)
+	if params.ExtraVolumeMount != nil {
+		volumeMounts = append(volumeMounts, *params.ExtraVolumeMount)
+	}
 	containerDef := []corev1.Container{
 		{
 			Name:            "mongo",
 			Image:           params.Image,
 			ImagePullPolicy: params.ImagePullPolicy,
-			VolumeMounts:    getVolumeMount(name, params.PersistenceEnabled),
+			VolumeMounts:    volumeMounts,
 			Env:             getEnvironmentVariables(params),
 			ReadinessProbe:  getMongoDBProbe(),
 			LivenessProbe:   getMongoDBProbe(),
@@ -39,7 +44,7 @@ func generateContainerDef(name string, params containerParameters) []corev1.Cont
 		containerDef[0].Resources = *params.Resources
 	}
 	if params.MongoDBConatainerArgs != nil {
-		containerDef[0].Args = *params.MongoDBConatainerArgs
+		containerDef[0].Command = *params.MongoDBConatainerArgs
 	}
 	if params.MongoDBMonitoring != nil && *params.MongoDBMonitoring {
 		containerDef = append(containerDef, getMongoDBExporterDef(params))
@@ -59,6 +64,16 @@ func getVolumeMount(name string, persistenceEnabled *bool) []corev1.VolumeMount 
 		}
 	}
 	return volumeMounts
+}
+
+// getSecretVolumeMount is a method to mount secret as volume
+func getSecretVolumeMount() *corev1.VolumeMount {
+	return &corev1.VolumeMount{
+		Name:      "mongodb-key",
+		MountPath: "/mongodb-config/password",
+		SubPath:   "password",
+		ReadOnly:  true,
+	}
 }
 
 // getEnvironmentVariables is a method to create environment variables

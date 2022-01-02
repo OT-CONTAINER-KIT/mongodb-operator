@@ -59,6 +59,12 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			return ctrl.Result{}, err
 		}
 	}
+	if !k8sgo.CheckSecretExist(instance.Namespace, fmt.Sprintf("%s-%s", instance.ObjectMeta.Name, "cluster-key")) {
+		err = k8sgo.GenerateMongoKeyFile(instance)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 	err = k8sgo.CreateMongoClusterSetup(instance)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -78,7 +84,10 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if int(mongoDBSTS.Status.ReadyReplicas) != int(*instance.Spec.MongoDBClusterSize) {
 		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 	} else {
-		k8sgo.InitializeMongoDBCluster(instance)
+		err = k8sgo.InitializeMongoDBCluster(instance)
+		if err != nil {
+		    return ctrl.Result{}, err
+		}
 	}
 	return ctrl.Result{}, nil
 }

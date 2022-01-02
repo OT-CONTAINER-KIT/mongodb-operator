@@ -2,6 +2,7 @@ package k8sgo
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -22,6 +23,7 @@ type statefulSetParameters struct {
 	Annotations     map[string]string
 	Replicas        *int32
 	PVCParameters   pvcParameters
+	ExtraVolumes    *[]corev1.Volume
 }
 
 // pvcParameters is the structure for MongoDB PVC
@@ -136,6 +138,9 @@ func generateStatefulSetDef(params statefulSetParameters) *appsv1.StatefulSet {
 	if params.ContainerParams.PersistenceEnabled != nil && *params.ContainerParams.PersistenceEnabled {
 		statefulset.Spec.VolumeClaimTemplates = append(statefulset.Spec.VolumeClaimTemplates, generatePersistentVolumeTemplate(params.PVCParameters))
 	}
+	if params.ExtraVolumes != nil {
+		statefulset.Spec.Template.Spec.Volumes = *params.ExtraVolumes
+	}
 	AddOwnerRefToObject(statefulset, params.OwnerDef)
 	return statefulset
 }
@@ -150,6 +155,22 @@ func generatePersistentVolumeTemplate(params pvcParameters) corev1.PersistentVol
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
 					corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(params.StorageSize),
+				},
+			},
+		},
+	}
+}
+
+// getSecretVolume is a method to get volume info for secret
+func getSecretVolume(name string) *[]corev1.Volume {
+	fileMode := int32(256)
+	return &[]corev1.Volume{
+		{
+			Name: "mongodb-key",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName:  fmt.Sprintf("%s-cluster-key", name),
+					DefaultMode: &fileMode,
 				},
 			},
 		},
