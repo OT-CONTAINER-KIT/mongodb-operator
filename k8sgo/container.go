@@ -11,6 +11,7 @@ type containerParameters struct {
 	ImagePullPolicy           corev1.PullPolicy
 	Resources                 *corev1.ResourceRequirements
 	PersistenceEnabled        *bool
+	MongoDBConatainerArgs     *[]string
 	MongoDBUser               *string
 	SecretName                *string
 	SecretKey                 *string
@@ -36,6 +37,9 @@ func generateContainerDef(name string, params containerParameters) []corev1.Cont
 	}
 	if params.Resources != nil {
 		containerDef[0].Resources = *params.Resources
+	}
+	if params.MongoDBConatainerArgs != nil {
+		containerDef[0].Args = *params.MongoDBConatainerArgs
 	}
 	if params.MongoDBMonitoring != nil && *params.MongoDBMonitoring {
 		containerDef = append(containerDef, getMongoDBExporterDef(params))

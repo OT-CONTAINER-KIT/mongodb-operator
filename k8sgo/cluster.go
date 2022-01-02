@@ -6,6 +6,60 @@ import (
 	opstreelabsinv1alpha1 "mongodb-operator/api/v1alpha1"
 )
 
+// CreateMongoClusterService is a method to create service for mongodb cluster
+func CreateMongoClusterService(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
+	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "Service")
+	appName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "cluster")
+	labels := map[string]string{
+		"app":           appName,
+		"mongodb_setup": "cluster",
+		"role":          "cluster",
+	}
+	params := serviceParameters{
+		ServiceMeta:     generateObjectMetaInformation(appName, cr.Namespace, labels, generateAnnotations()),
+		OwnerDef:        mongoClusterAsOwner(cr),
+		Namespace:       cr.Namespace,
+		Labels:          labels,
+		Annotations:     generateAnnotations(),
+		HeadlessService: true,
+		Port:            mongoDBPort,
+		PortName:        "mongo",
+	}
+	err := CreateOrUpdateService(params)
+	if err != nil {
+		logger.Error(err, "Cannot create cluster Service for MongoDB")
+		return err
+	}
+	return nil
+}
+
+// CreateMongoClusterMonitoringService is a method to create a monitoring service for mongodb cluster
+func CreateMongoClusterMonitoringService(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
+	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "Service")
+	appName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "cluster")
+	labels := map[string]string{
+		"app":           appName,
+		"mongodb_setup": "cluster",
+		"role":          "cluster",
+	}
+	monitoringParams := serviceParameters{
+		ServiceMeta:     generateObjectMetaInformation(fmt.Sprintf("%s-%s", appName, "metrics"), cr.Namespace, labels, generateAnnotations()),
+		OwnerDef:        mongoClusterAsOwner(cr),
+		Namespace:       cr.Namespace,
+		Labels:          labels,
+		Annotations:     generateAnnotations(),
+		HeadlessService: false,
+		Port:            mongoDBMonitoringPort,
+		PortName:        "metrics",
+	}
+	err := CreateOrUpdateService(monitoringParams)
+	if err != nil {
+		logger.Error(err, "Cannot create cluster metrics Service for MongoDB")
+		return err
+	}
+	return nil
+}
+
 // CreateMongoClusterSetup is a method to create cluster statefulset for MongoDB
 func CreateMongoClusterSetup(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
 	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "StatefulSet")
@@ -60,14 +114,16 @@ func getMongoDBClusterParams(cr *opstreelabsinv1alpha1.MongoDBCluster) statefulS
 		"mongodb_setup": "cluster",
 		"role":          "cluster",
 	}
+	containerArgs := []string{"--bind_ip", "0.0.0.0", "--replSet", cr.ObjectMeta.Name}
 	params := statefulSetParameters{
 		StatefulSetMeta: generateObjectMetaInformation(appName, cr.Namespace, labels, generateAnnotations()),
 		OwnerDef:        mongoClusterAsOwner(cr),
 		Namespace:       cr.Namespace,
 		ContainerParams: containerParameters{
-			Image:           cr.Spec.KubernetesConfig.Image,
-			ImagePullPolicy: cr.Spec.KubernetesConfig.ImagePullPolicy,
-			Resources:       cr.Spec.KubernetesConfig.Resources,
+			Image:                 cr.Spec.KubernetesConfig.Image,
+			ImagePullPolicy:       cr.Spec.KubernetesConfig.ImagePullPolicy,
+			Resources:             cr.Spec.KubernetesConfig.Resources,
+			MongoDBConatainerArgs: &containerArgs,
 		},
 		Replicas:    cr.Spec.MongoDBClusterSize,
 		Labels:      labels,

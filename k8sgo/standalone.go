@@ -38,7 +38,7 @@ func CreateMongoStandaloneService(cr *opstreelabsinv1alpha1.MongoDB) error {
 		Annotations:     generateAnnotations(),
 		HeadlessService: false,
 		Port:            mongoDBMonitoringPort,
-		PortName:        "mongo-exporter",
+		PortName:        "metrics",
 	}
 	err = CreateOrUpdateService(monitoringParams)
 	if err != nil {

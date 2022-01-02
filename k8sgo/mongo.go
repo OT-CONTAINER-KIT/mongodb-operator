@@ -6,6 +6,28 @@ import (
 	"mongodb-operator/mongo"
 )
 
+// InitializeMongoDBCluster is a method to create a mongodb cluster
+func InitializeMongoDBCluster(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
+	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "MongoDB Cluster Setup")
+	serviceName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "cluster")
+	passwordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name}
+	password := getMongoDBPassword(passwordParams)
+	mongoURL := fmt.Sprintf("mongodb://%s:%s@%s:27017/", cr.Spec.MongoDBSecurity.MongoDBAdminUser, password, serviceName)
+	mongoParams := mongogo.MongoDBParameters{
+		MongoURL:     mongoURL,
+		Namespace:    cr.Namespace,
+		Name:         cr.ObjectMeta.Name,
+		ClusterNodes: cr.Spec.MongoDBClusterSize,
+	}
+	err := mongogo.InitiateMongoClusterRS(mongoParams)
+	if err != nil {
+		logger.Error(err, "Unable to create MongoDB cluster")
+		return err
+	}
+	logger.Info("Successfully created the MongoDB cluster")
+	return nil
+}
+
 // CreateMongoDBMonitoringUser is a method to create a monitoring user for MongoDB
 func CreateMongoDBMonitoringUser(cr *opstreelabsinv1alpha1.MongoDB) error {
 	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "MongoDB Monitoring User")

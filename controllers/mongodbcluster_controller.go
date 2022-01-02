@@ -24,6 +24,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"time"
 
 	opstreelabsinv1alpha1 "mongodb-operator/api/v1alpha1"
 	"mongodb-operator/k8sgo"
@@ -61,6 +62,23 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	err = k8sgo.CreateMongoClusterSetup(instance)
 	if err != nil {
 		return ctrl.Result{}, err
+	}
+	err = k8sgo.CreateMongoClusterMonitoringService(instance)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	err = k8sgo.CreateMongoClusterService(instance)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	mongoDBSTS, err := k8sgo.GetStateFulSet(instance.Namespace, fmt.Sprintf("%s-%s", instance.ObjectMeta.Name, "cluster"))
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	if int(mongoDBSTS.Status.ReadyReplicas) != int(*instance.Spec.MongoDBClusterSize) {
+		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
+	} else {
+		k8sgo.InitializeMongoDBCluster(instance)
 	}
 	return ctrl.Result{}, nil
 }

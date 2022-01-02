@@ -2,6 +2,7 @@ package mongogo
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-logr/logr"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -19,11 +20,12 @@ const (
 
 // MongoDBParameters is a struct for MongoDB related inputs
 type MongoDBParameters struct {
-	MongoURL  string
-	Namespace string
-	Name      string
-	Password  string
-	UserName  *string
+	MongoURL     string
+	Namespace    string
+	Name         string
+	Password     string
+	UserName     *string
+	ClusterNodes *int32
 }
 
 // InitiateMongoClient is a method to create client connection with MongoDB
@@ -82,6 +84,33 @@ func GetMongoDBUser(params MongoDBParameters) (bool, error) {
 		return true, nil
 	}
 	return false, nil
+}
+
+// InitiateMongoClusterRS is a method to create MongoDB cluster
+func InitiateMongoClusterRS(params MongoDBParameters) error {
+	var mongoNodeInfo []bson.M
+	client := InitiateMongoClient(params)
+	for node := 1; node <= int(*params.ClusterNodes); node++ {
+		mongoNodeInfo = append(mongoNodeInfo, bson.M{"_id": node, "host": getMongoNodeInfo(params, node)})
+	}
+	config := bson.M{
+		"_id":     params.Name,
+		"members": mongoNodeInfo,
+	}
+	response := client.Database(dbName).RunCommand(context.Background(), bson.M{"replSetInitiate": config})
+	if response.Err() != nil {
+		return response.Err()
+	}
+	err := DiscconnectMongoClient(client)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// getMongoNodeInfo is a method to get info for MongoDB node
+func getMongoNodeInfo(params MongoDBParameters, count int) string {
+	return fmt.Sprintf("%s-cluster-%v.%s-cluster.%s:27017", params.Name, count, params.Name, params.Namespace)
 }
 
 // logGenerator is a method to generate logging interface
