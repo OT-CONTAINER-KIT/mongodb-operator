@@ -90,14 +90,16 @@ func GetMongoDBUser(params MongoDBParameters) (bool, error) {
 func InitiateMongoClusterRS(params MongoDBParameters) error {
 	var mongoNodeInfo []bson.M
 	client := InitiateMongoClient(params)
-	for node := 1; node <= int(*params.ClusterNodes); node++ {
+	for node := 0; node < int(*params.ClusterNodes); node++ {
 		mongoNodeInfo = append(mongoNodeInfo, bson.M{"_id": node, "host": getMongoNodeInfo(params, node)})
 	}
 	config := bson.M{
 		"_id":     params.Name,
+		"version": 1,
 		"members": mongoNodeInfo,
 	}
-	response := client.Database(dbName).RunCommand(context.Background(), bson.M{"replSetInitiate": config})
+	fmt.Println(config)
+	response := client.Database(dbName).RunCommand(context.Background(), bson.M{"rs.initiate": config})
 	if response.Err() != nil {
 		return response.Err()
 	}

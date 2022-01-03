@@ -86,7 +86,7 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	} else {
 		err = k8sgo.InitializeMongoDBCluster(instance)
 		if err != nil {
-		    return ctrl.Result{}, err
+			return ctrl.Result{}, err
 		}
 	}
 	return ctrl.Result{}, nil
