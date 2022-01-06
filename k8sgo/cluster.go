@@ -152,12 +152,10 @@ func getMongoDBClusterParams(cr *opstreelabsinv1alpha1.MongoDBCluster) statefulS
 			Resources:           cr.Spec.KubernetesConfig.Resources,
 			MongoReplicaSetName: &cr.ObjectMeta.Name,
 			MongoSetupType:      "cluster",
-			ExtraVolumeMount:    getSecretVolumeMount(),
 		},
-		Replicas:     cr.Spec.MongoDBClusterSize,
-		Labels:       labels,
-		Annotations:  generateAnnotations(),
-		ExtraVolumes: getSecretVolume(cr.ObjectMeta.Name),
+		Replicas:    cr.Spec.MongoDBClusterSize,
+		Labels:      labels,
+		Annotations: generateAnnotations(),
 	}
 
 	if cr.Spec.MongoDBSecurity != nil {

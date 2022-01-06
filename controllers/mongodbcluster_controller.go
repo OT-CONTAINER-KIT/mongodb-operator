@@ -46,51 +46,50 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	err := r.Client.Get(context.TODO(), req.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			return ctrl.Result{}, nil
+			return ctrl.Result{RequeueAfter: time.Second * 10}, nil
 		}
-		return ctrl.Result{}, err
+		return ctrl.Result{RequeueAfter: time.Second * 10}, err
 	}
 	if err := controllerutil.SetControllerReference(instance, instance, r.Scheme); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{RequeueAfter: time.Second * 10}, err
 	}
 	if !k8sgo.CheckSecretExist(instance.Namespace, fmt.Sprintf("%s-%s", instance.ObjectMeta.Name, "cluster-monitoring")) {
 		err = k8sgo.CreateMongoClusterMonitoringSecret(instance)
 		if err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-	if !k8sgo.CheckSecretExist(instance.Namespace, fmt.Sprintf("%s-%s", instance.ObjectMeta.Name, "cluster-key")) {
-		err = k8sgo.GenerateMongoKeyFile(instance)
-		if err != nil {
-			return ctrl.Result{}, err
+			return ctrl.Result{RequeueAfter: time.Second * 10}, err
 		}
 	}
 	err = k8sgo.CreateMongoClusterSetup(instance)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{RequeueAfter: time.Second * 10}, err
 	}
 	err = k8sgo.CreateMongoClusterMonitoringService(instance)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{RequeueAfter: time.Second * 10}, err
 	}
 	err = k8sgo.CreateMongoClusterService(instance)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{RequeueAfter: time.Second * 10}, err
 	}
 	mongoDBSTS, err := k8sgo.GetStateFulSet(instance.Namespace, fmt.Sprintf("%s-%s", instance.ObjectMeta.Name, "cluster"))
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{RequeueAfter: time.Second * 10}, err
 	}
 	if int(mongoDBSTS.Status.ReadyReplicas) != int(*instance.Spec.MongoDBClusterSize) {
 		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 	} else {
-		err = k8sgo.CheckMongoClusterState(instance)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		err = k8sgo.InitializeMongoDBCluster(instance)
-		if err != nil {
-			return ctrl.Result{}, err
+		state, err := k8sgo.CheckMongoClusterStateInitialized(instance)
+		if err != nil || !state {
+			err = k8sgo.InitializeMongoDBCluster(instance)
+			if err != nil {
+				return ctrl.Result{RequeueAfter: time.Second * 10}, err
+			}
+			if !k8sgo.CheckMongoDBClusterMonitoringUser(instance) {
+				err = k8sgo.CreateMongoDBClusterMonitoringUser(instance)
+				if err != nil {
+					return ctrl.Result{RequeueAfter: time.Second * 10}, err
+				}
+			}
 		}
 	}
 	return ctrl.Result{}, nil

@@ -64,16 +64,6 @@ func getVolumeMount(name string, persistenceEnabled *bool) []corev1.VolumeMount 
 	return volumeMounts
 }
 
-// getSecretVolumeMount is a method to mount secret as volume
-func getSecretVolumeMount() *corev1.VolumeMount {
-	return &corev1.VolumeMount{
-		Name:      "mongodb-key",
-		MountPath: "/mongodb-config/password",
-		SubPath:   "password",
-		ReadOnly:  true,
-	}
-}
-
 // getEnvironmentVariables is a method to create environment variables
 func getEnvironmentVariables(params containerParameters) []corev1.EnvVar {
 	var envVars []corev1.EnvVar

@@ -77,6 +77,9 @@ func GetMongoDBUser(params MongoDBParameters) (bool, error) {
 	defer cancel()
 	opts := options.Count().SetMaxTime(2 * time.Second)
 	docsCount, err := collection.CountDocuments(ctx, bson.D{{"user", *params.UserName}}, opts)
+	if err != nil {
+		return false, err
+	}
 	err = discconnectMongoClient(client)
 	if err != nil {
 		return false, err
@@ -92,13 +95,12 @@ func InitiateMongoClusterRS(params MongoDBParameters) error {
 	var mongoNodeInfo []bson.M
 	client := initiateMongoClient(params)
 	for node := 0; node < int(*params.ClusterNodes); node++ {
-		mongoNodeInfo = append(mongoNodeInfo, bson.M{"_id": node, "host": getMongoNodeInfo(params, node)})
+		mongoNodeInfo = append(mongoNodeInfo, bson.M{"_id": node, "host": GetMongoNodeInfo(params, node)})
 	}
 	config := bson.M{
 		"_id":     params.Name,
 		"members": mongoNodeInfo,
 	}
-	fmt.Println(config)
 	response := client.Database(dbName).RunCommand(context.Background(), bson.M{"replSetInitiate": config})
 	if response.Err() != nil {
 		return response.Err()
@@ -114,13 +116,18 @@ func InitiateMongoClusterRS(params MongoDBParameters) error {
 func CheckMongoClusterInitialized(params MongoDBParameters) (bool, error) {
 	client := initiateMongoClient(params)
 	var result bson.M
-	response := client.Database(dbName).RunCommand(context.Background(), bson.D{{"replSetGetStatus.ok", ""}}).Decode(&result)
-	fmt.Println(response)
-	return true, nil
+	err := client.Database(dbName).RunCommand(context.Background(), bson.D{{Key: "replSetGetStatus", Value: 1}}).Decode(&result)
+	if err != nil {
+		return false, err
+	}
+	if result["ok"] != 0 {
+		return true, nil
+	}
+	return false, nil
 }
 
-// getMongoNodeInfo is a method to get info for MongoDB node
-func getMongoNodeInfo(params MongoDBParameters, count int) string {
+// GetMongoNodeInfo is a method to get info for MongoDB node
+func GetMongoNodeInfo(params MongoDBParameters, count int) string {
 	return fmt.Sprintf("%s-cluster-%v.%s-cluster.%s:27017", params.Name, count, params.Name, params.Namespace)
 }
 

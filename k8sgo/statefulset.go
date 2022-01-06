@@ -2,7 +2,6 @@ package k8sgo
 
 import (
 	"context"
-	"fmt"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -155,22 +154,6 @@ func generatePersistentVolumeTemplate(params pvcParameters) corev1.PersistentVol
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
 					corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(params.StorageSize),
-				},
-			},
-		},
-	}
-}
-
-// getSecretVolume is a method to get volume info for secret
-func getSecretVolume(name string) *[]corev1.Volume {
-	fileMode := int32(256)
-	return &[]corev1.Volume{
-		{
-			Name: "mongodb-key",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName:  fmt.Sprintf("%s-cluster-key", name),
-					DefaultMode: &fileMode,
 				},
 			},
 		},
