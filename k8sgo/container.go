@@ -11,7 +11,8 @@ type containerParameters struct {
 	ImagePullPolicy           corev1.PullPolicy
 	Resources                 *corev1.ResourceRequirements
 	PersistenceEnabled        *bool
-	MongoDBConatainerArgs     *[]string
+	MongoReplicaSetName       *string
+	MongoSetupType            string
 	MongoDBUser               *string
 	SecretName                *string
 	SecretKey                 *string
@@ -42,9 +43,6 @@ func generateContainerDef(name string, params containerParameters) []corev1.Cont
 	}
 	if params.Resources != nil {
 		containerDef[0].Resources = *params.Resources
-	}
-	if params.MongoDBConatainerArgs != nil {
-		containerDef[0].Command = *params.MongoDBConatainerArgs
 	}
 	if params.MongoDBMonitoring != nil && *params.MongoDBMonitoring {
 		containerDef = append(containerDef, getMongoDBExporterDef(params))
@@ -82,7 +80,7 @@ func getEnvironmentVariables(params containerParameters) []corev1.EnvVar {
 	if params.SecretName != nil && params.MongoDBUser != nil {
 		envVars = []corev1.EnvVar{
 			{
-				Name: "MONGO_INITDB_ROOT_PASSWORD",
+				Name: "MONGO_ROOT_PASSWORD",
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
@@ -93,10 +91,20 @@ func getEnvironmentVariables(params containerParameters) []corev1.EnvVar {
 				},
 			},
 			{
-				Name:  "MONGO_INITDB_ROOT_USERNAME",
+				Name:  "MONGO_ROOT_USERNAME",
 				Value: *params.MongoDBUser,
 			},
+			{
+				Name:  "MONGO_MODE",
+				Value: params.MongoSetupType,
+			},
 		}
+	}
+	if params.MongoReplicaSetName != nil {
+		envVars = append(envVars, corev1.EnvVar{
+			Name:  "MONGO_REPL",
+			Value: *params.MongoReplicaSetName,
+		})
 	}
 	return envVars
 }

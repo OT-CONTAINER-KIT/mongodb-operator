@@ -142,17 +142,17 @@ func getMongoDBClusterParams(cr *opstreelabsinv1alpha1.MongoDBCluster) statefulS
 		"mongodb_setup": "cluster",
 		"role":          "cluster",
 	}
-	containerArgs := []string{"mongod", "--bind_ip", "0.0.0.0", "--replSet", cr.ObjectMeta.Name, "--keyFile", "/mongodb-config/password"}
 	params := statefulSetParameters{
 		StatefulSetMeta: generateObjectMetaInformation(appName, cr.Namespace, labels, generateAnnotations()),
 		OwnerDef:        mongoClusterAsOwner(cr),
 		Namespace:       cr.Namespace,
 		ContainerParams: containerParameters{
-			Image:                 cr.Spec.KubernetesConfig.Image,
-			ImagePullPolicy:       cr.Spec.KubernetesConfig.ImagePullPolicy,
-			Resources:             cr.Spec.KubernetesConfig.Resources,
-			MongoDBConatainerArgs: &containerArgs,
-			ExtraVolumeMount:      getSecretVolumeMount(),
+			Image:               cr.Spec.KubernetesConfig.Image,
+			ImagePullPolicy:     cr.Spec.KubernetesConfig.ImagePullPolicy,
+			Resources:           cr.Spec.KubernetesConfig.Resources,
+			MongoReplicaSetName: &cr.ObjectMeta.Name,
+			MongoSetupType:      "cluster",
+			ExtraVolumeMount:    getSecretVolumeMount(),
 		},
 		Replicas:     cr.Spec.MongoDBClusterSize,
 		Labels:       labels,

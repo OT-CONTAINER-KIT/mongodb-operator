@@ -84,6 +84,10 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if int(mongoDBSTS.Status.ReadyReplicas) != int(*instance.Spec.MongoDBClusterSize) {
 		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
 	} else {
+		err = k8sgo.CheckMongoClusterState(instance)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 		err = k8sgo.InitializeMongoDBCluster(instance)
 		if err != nil {
 			return ctrl.Result{}, err

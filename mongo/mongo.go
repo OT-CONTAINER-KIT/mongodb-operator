@@ -28,20 +28,20 @@ type MongoDBParameters struct {
 	ClusterNodes *int32
 }
 
-// InitiateMongoClient is a method to create client connection with MongoDB
-func InitiateMongoClient(params MongoDBParameters) *mongo.Client {
+// initiateMongoClient is a method to create client connection with MongoDB
+func initiateMongoClient(params MongoDBParameters) *mongo.Client {
 	logger := logGenerator(params.Name, params.Namespace, "MongoDB Client")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(params.MongoURL))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(params.MongoURL).SetDirect(true))
 	if err != nil {
 		logger.Error(err, "Unable to establish connection with MongoDB")
 	}
 	return client
 }
 
-// DiscconnectMongoClient is a method to disconnect MongoDB client
-func DiscconnectMongoClient(client *mongo.Client) error {
+// discconnectMongoClient is a method to disconnect MongoDB client
+func discconnectMongoClient(client *mongo.Client) error {
 	defer func() {
 		if err := client.Disconnect(context.Background()); err != nil {
 			return
@@ -53,7 +53,7 @@ func DiscconnectMongoClient(client *mongo.Client) error {
 //nolint:govet
 // CreateMonitoringUser is a method to create monitoring user inside MongoDB
 func CreateMonitoringUser(params MongoDBParameters) error {
-	client := InitiateMongoClient(params)
+	client := initiateMongoClient(params)
 	response := client.Database(dbName).RunCommand(context.Background(), bson.D{
 		{"createUser", monitoringUser}, {"pwd", params.Password},
 		{"roles", []bson.M{{"role": "clusterMonitor", "db": "admin"}, {"role": "read", "db": "local"}}}},
@@ -61,7 +61,7 @@ func CreateMonitoringUser(params MongoDBParameters) error {
 	if response.Err() != nil {
 		return response.Err()
 	}
-	err := DiscconnectMongoClient(client)
+	err := discconnectMongoClient(client)
 	if err != nil {
 		return err
 	}
@@ -71,12 +71,13 @@ func CreateMonitoringUser(params MongoDBParameters) error {
 //nolint:govet
 // GetMongoDBUser is a method to check if user exists in MongoDB
 func GetMongoDBUser(params MongoDBParameters) (bool, error) {
-	client := InitiateMongoClient(params)
+	client := initiateMongoClient(params)
 	collection := client.Database("admin").Collection("system.users")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	opts := options.Count().SetMaxTime(2 * time.Second)
 	docsCount, err := collection.CountDocuments(ctx, bson.D{{"user", *params.UserName}}, opts)
+	err = discconnectMongoClient(client)
 	if err != nil {
 		return false, err
 	}
@@ -89,25 +90,33 @@ func GetMongoDBUser(params MongoDBParameters) (bool, error) {
 // InitiateMongoClusterRS is a method to create MongoDB cluster
 func InitiateMongoClusterRS(params MongoDBParameters) error {
 	var mongoNodeInfo []bson.M
-	client := InitiateMongoClient(params)
+	client := initiateMongoClient(params)
 	for node := 0; node < int(*params.ClusterNodes); node++ {
 		mongoNodeInfo = append(mongoNodeInfo, bson.M{"_id": node, "host": getMongoNodeInfo(params, node)})
 	}
 	config := bson.M{
 		"_id":     params.Name,
-		"version": 1,
 		"members": mongoNodeInfo,
 	}
 	fmt.Println(config)
-	response := client.Database(dbName).RunCommand(context.Background(), bson.M{"rs.initiate": config})
+	response := client.Database(dbName).RunCommand(context.Background(), bson.M{"replSetInitiate": config})
 	if response.Err() != nil {
 		return response.Err()
 	}
-	err := DiscconnectMongoClient(client)
+	err := discconnectMongoClient(client)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+// CheckMongoClusterInitialized is a method to check if cluster is initailized or not
+func CheckMongoClusterInitialized(params MongoDBParameters) (bool, error) {
+	client := initiateMongoClient(params)
+	var result bson.M
+	response := client.Database(dbName).RunCommand(context.Background(), bson.D{{"replSetGetStatus.ok", ""}}).Decode(&result)
+	fmt.Println(response)
+	return true, nil
 }
 
 // getMongoNodeInfo is a method to get info for MongoDB node

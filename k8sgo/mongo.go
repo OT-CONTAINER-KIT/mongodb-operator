@@ -28,6 +28,27 @@ func InitializeMongoDBCluster(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
 	return nil
 }
 
+// CheckMongoClusterState is a method to check mongodb cluster state
+func CheckMongoClusterState(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
+	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "MongoDB Cluster Setup")
+	serviceName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "cluster")
+	passwordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name}
+	password := getMongoDBPassword(passwordParams)
+	mongoURL := fmt.Sprintf("mongodb://%s:%s@%s:27017/", cr.Spec.MongoDBSecurity.MongoDBAdminUser, password, serviceName)
+	mongoParams := mongogo.MongoDBParameters{
+		MongoURL:  mongoURL,
+		Namespace: cr.Namespace,
+		Name:      cr.ObjectMeta.Name,
+	}
+	_, err := mongogo.CheckMongoClusterInitialized(mongoParams)
+	if err != nil {
+		logger.Error(err, "Unable to check Mongo Cluster state")
+		return err
+	}
+	logger.Info("Successfully checked the MongoDB cluster state")
+	return nil
+}
+
 // CreateMongoDBMonitoringUser is a method to create a monitoring user for MongoDB
 func CreateMongoDBMonitoringUser(cr *opstreelabsinv1alpha1.MongoDB) error {
 	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "MongoDB Monitoring User")
