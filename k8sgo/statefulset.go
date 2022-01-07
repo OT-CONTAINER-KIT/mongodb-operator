@@ -22,6 +22,7 @@ type statefulSetParameters struct {
 	Annotations     map[string]string
 	Replicas        *int32
 	PVCParameters   pvcParameters
+	ExtraVolumes    *[]corev1.Volume
 }
 
 // pvcParameters is the structure for MongoDB PVC
@@ -135,6 +136,9 @@ func generateStatefulSetDef(params statefulSetParameters) *appsv1.StatefulSet {
 
 	if params.ContainerParams.PersistenceEnabled != nil && *params.ContainerParams.PersistenceEnabled {
 		statefulset.Spec.VolumeClaimTemplates = append(statefulset.Spec.VolumeClaimTemplates, generatePersistentVolumeTemplate(params.PVCParameters))
+	}
+	if params.ExtraVolumes != nil {
+		statefulset.Spec.Template.Spec.Volumes = *params.ExtraVolumes
 	}
 	AddOwnerRefToObject(statefulset, params.OwnerDef)
 	return statefulset

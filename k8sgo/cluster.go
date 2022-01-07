@@ -6,18 +6,18 @@ import (
 	opstreelabsinv1alpha1 "mongodb-operator/api/v1alpha1"
 )
 
-// CreateMongoStandaloneService is a method to create standalone service for MongoDB
-func CreateMongoStandaloneService(cr *opstreelabsinv1alpha1.MongoDB) error {
+// CreateMongoClusterService is a method to create service for mongodb cluster
+func CreateMongoClusterService(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
 	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "Service")
-	appName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "standalone")
+	appName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "cluster")
 	labels := map[string]string{
 		"app":           appName,
-		"mongodb_setup": "standalone",
-		"role":          "standalone",
+		"mongodb_setup": "cluster",
+		"role":          "cluster",
 	}
 	params := serviceParameters{
 		ServiceMeta:     generateObjectMetaInformation(appName, cr.Namespace, labels, generateAnnotations()),
-		OwnerDef:        mongoAsOwner(cr),
+		OwnerDef:        mongoClusterAsOwner(cr),
 		Namespace:       cr.Namespace,
 		Labels:          labels,
 		Annotations:     generateAnnotations(),
@@ -27,12 +27,24 @@ func CreateMongoStandaloneService(cr *opstreelabsinv1alpha1.MongoDB) error {
 	}
 	err := CreateOrUpdateService(params)
 	if err != nil {
-		logger.Error(err, "Cannot create standalone Service for MongoDB")
+		logger.Error(err, "Cannot create cluster Service for MongoDB")
 		return err
+	}
+	return nil
+}
+
+// CreateMongoClusterMonitoringService is a method to create a monitoring service for mongodb cluster
+func CreateMongoClusterMonitoringService(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
+	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "Service")
+	appName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "cluster")
+	labels := map[string]string{
+		"app":           appName,
+		"mongodb_setup": "cluster",
+		"role":          "cluster",
 	}
 	monitoringParams := serviceParameters{
 		ServiceMeta:     generateObjectMetaInformation(fmt.Sprintf("%s-%s", appName, "metrics"), cr.Namespace, labels, generateAnnotations()),
-		OwnerDef:        mongoAsOwner(cr),
+		OwnerDef:        mongoClusterAsOwner(cr),
 		Namespace:       cr.Namespace,
 		Labels:          labels,
 		Annotations:     generateAnnotations(),
@@ -40,48 +52,48 @@ func CreateMongoStandaloneService(cr *opstreelabsinv1alpha1.MongoDB) error {
 		Port:            mongoDBMonitoringPort,
 		PortName:        "metrics",
 	}
-	err = CreateOrUpdateService(monitoringParams)
+	err := CreateOrUpdateService(monitoringParams)
 	if err != nil {
-		logger.Error(err, "Cannot create standalone metrics Service for MongoDB")
+		logger.Error(err, "Cannot create cluster metrics Service for MongoDB")
 		return err
 	}
 	return nil
 }
 
-// CreateMongoStandaloneSetup is a method to create standalone statefulset for MongoDB
-func CreateMongoStandaloneSetup(cr *opstreelabsinv1alpha1.MongoDB) error {
+// CreateMongoClusterSetup is a method to create cluster statefulset for MongoDB
+func CreateMongoClusterSetup(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
 	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "StatefulSet")
-	err := CreateOrUpdateStateFul(getMongoDBStandaloneParams(cr))
+	err := CreateOrUpdateStateFul(getMongoDBClusterParams(cr))
 	if err != nil {
-		logger.Error(err, "Cannot create standalone StatefulSet for MongoDB")
+		logger.Error(err, "Cannot create cluster StatefulSet for MongoDB")
 		return err
 	}
 	return nil
 }
 
-// CreateMongoMonitoringSecret is a method to create secret for monitoring
-func CreateMongoMonitoringSecret(cr *opstreelabsinv1alpha1.MongoDB) error {
+// CreateMongoClusterMonitoringSecret is a method to create secret for monitoring
+func CreateMongoClusterMonitoringSecret(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
 	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "Secret")
-	err := CreateSecret(getMongoDBSecretParams(cr))
+	err := CreateSecret(getMongoDBClusterSecretParams(cr))
 	if err != nil {
-		logger.Error(err, "Cannot create mongodb monitoring secret")
+		logger.Error(err, "Cannot create mongodb monitoring secret for cluster")
 		return err
 	}
 	return nil
 }
 
-// getMongoDBSecretParams is a method to create secret for MongoDB Monitoring
-func getMongoDBSecretParams(cr *opstreelabsinv1alpha1.MongoDB) secretsParameters {
+// getMongoDBClusterSecretParams is a method to create secret for MongoDB Monitoring
+func getMongoDBClusterSecretParams(cr *opstreelabsinv1alpha1.MongoDBCluster) secretsParameters {
 	password := randstr.String(16)
-	appName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "standalone-monitoring")
+	appName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "cluster-monitoring")
 	labels := map[string]string{
 		"app":           appName,
-		"mongodb_setup": "standalone",
-		"role":          "standalone",
+		"mongodb_setup": "cluster",
+		"role":          "cluster",
 	}
 	params := secretsParameters{
 		SecretsMeta: generateObjectMetaInformation(appName, cr.Namespace, labels, generateAnnotations()),
-		OwnerDef:    mongoAsOwner(cr),
+		OwnerDef:    mongoClusterAsOwner(cr),
 		Namespace:   cr.Namespace,
 		Labels:      labels,
 		Annotations: generateAnnotations(),
@@ -91,29 +103,29 @@ func getMongoDBSecretParams(cr *opstreelabsinv1alpha1.MongoDB) secretsParameters
 	return params
 }
 
-// getMongoDBStandaloneParams is a method to generate params for standalone
-func getMongoDBStandaloneParams(cr *opstreelabsinv1alpha1.MongoDB) statefulSetParameters {
-	replicas := int32(1)
+// getMongoDBClusterParams is a method to generate params for cluster
+func getMongoDBClusterParams(cr *opstreelabsinv1alpha1.MongoDBCluster) statefulSetParameters {
 	trueProperty := true
 	falseProperty := false
-	appName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "standalone")
+	appName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "cluster")
 	monitoringSecretName := fmt.Sprintf("%s-%s", appName, "monitoring")
 	labels := map[string]string{
 		"app":           appName,
-		"mongodb_setup": "standalone",
-		"role":          "standalone",
+		"mongodb_setup": "cluster",
+		"role":          "cluster",
 	}
 	params := statefulSetParameters{
 		StatefulSetMeta: generateObjectMetaInformation(appName, cr.Namespace, labels, generateAnnotations()),
-		OwnerDef:        mongoAsOwner(cr),
+		OwnerDef:        mongoClusterAsOwner(cr),
 		Namespace:       cr.Namespace,
 		ContainerParams: containerParameters{
-			Image:           cr.Spec.KubernetesConfig.Image,
-			ImagePullPolicy: cr.Spec.KubernetesConfig.ImagePullPolicy,
-			Resources:       cr.Spec.KubernetesConfig.Resources,
-			MongoSetupType:  "standalone",
+			Image:               cr.Spec.KubernetesConfig.Image,
+			ImagePullPolicy:     cr.Spec.KubernetesConfig.ImagePullPolicy,
+			Resources:           cr.Spec.KubernetesConfig.Resources,
+			MongoReplicaSetName: &cr.ObjectMeta.Name,
+			MongoSetupType:      "cluster",
 		},
-		Replicas:    &replicas,
+		Replicas:    cr.Spec.MongoDBClusterSize,
 		Labels:      labels,
 		Annotations: generateAnnotations(),
 	}

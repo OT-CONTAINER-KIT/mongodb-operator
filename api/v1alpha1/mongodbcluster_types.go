@@ -20,22 +20,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // MongoDBClusterSpec defines the desired state of MongoDBCluster
 type MongoDBClusterSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of MongoDBCluster. Edit mongodbcluster_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	MongoDBClusterSize *int32             `json:"clusterSize"`
+	EnableArbiter      *bool              `json:"enableMongoArbiter,omitempty"`
+	KubernetesConfig   KubernetesConfig   `json:"kubernetesConfig"`
+	Storage            *Storage           `json:"storage,omitempty"`
+	MongoDBSecurity    *MongoDBSecurity   `json:"mongoDBSecurity"`
+	MongoDBMonitoring  *MongoDBMonitoring `json:"mongoDBMonitoring,omitempty"`
 }
 
 // MongoDBClusterStatus defines the observed state of MongoDBCluster
 type MongoDBClusterStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	MongoDBCluster MongoDBClusterSpec `json:"mongodbCluster,omitempty"`
 }
 
 //+kubebuilder:object:root=true

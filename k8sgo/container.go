@@ -11,6 +11,8 @@ type containerParameters struct {
 	ImagePullPolicy           corev1.PullPolicy
 	Resources                 *corev1.ResourceRequirements
 	PersistenceEnabled        *bool
+	MongoReplicaSetName       *string
+	MongoSetupType            string
 	MongoDBUser               *string
 	SecretName                *string
 	SecretKey                 *string
@@ -19,16 +21,21 @@ type containerParameters struct {
 	MonitoringImagePullPolicy *corev1.PullPolicy
 	MonitoringSecret          *string
 	MonitoringResources       *corev1.ResourceRequirements
+	ExtraVolumeMount          *corev1.VolumeMount
 }
 
 // generateContainerDef is to generate container definition for MongoDB
 func generateContainerDef(name string, params containerParameters) []corev1.Container {
+	volumeMounts := getVolumeMount(name, params.PersistenceEnabled)
+	if params.ExtraVolumeMount != nil {
+		volumeMounts = append(volumeMounts, *params.ExtraVolumeMount)
+	}
 	containerDef := []corev1.Container{
 		{
 			Name:            "mongo",
 			Image:           params.Image,
 			ImagePullPolicy: params.ImagePullPolicy,
-			VolumeMounts:    getVolumeMount(name, params.PersistenceEnabled),
+			VolumeMounts:    volumeMounts,
 			Env:             getEnvironmentVariables(params),
 			ReadinessProbe:  getMongoDBProbe(),
 			LivenessProbe:   getMongoDBProbe(),
@@ -63,7 +70,7 @@ func getEnvironmentVariables(params containerParameters) []corev1.EnvVar {
 	if params.SecretName != nil && params.MongoDBUser != nil {
 		envVars = []corev1.EnvVar{
 			{
-				Name: "MONGO_INITDB_ROOT_PASSWORD",
+				Name: "MONGO_ROOT_PASSWORD",
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{
@@ -74,10 +81,20 @@ func getEnvironmentVariables(params containerParameters) []corev1.EnvVar {
 				},
 			},
 			{
-				Name:  "MONGO_INITDB_ROOT_USERNAME",
+				Name:  "MONGO_ROOT_USERNAME",
 				Value: *params.MongoDBUser,
 			},
+			{
+				Name:  "MONGO_MODE",
+				Value: params.MongoSetupType,
+			},
 		}
+	}
+	if params.MongoReplicaSetName != nil {
+		envVars = append(envVars, corev1.EnvVar{
+			Name:  "MONGO_REPL",
+			Value: *params.MongoReplicaSetName,
+		})
 	}
 	return envVars
 }
