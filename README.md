@@ -39,16 +39,16 @@ The aim and purpose of creating this MongoDB operator are to provide an easy and
 ## Supported Features
 
 - MongoDB standalone setup
+- MongoDB replicated cluster setup
 - Monitoring support with MongoDB Exporter
 - Password based authentication for MongoDB
+- Kubernetes's resources for MongoDB standalone and cluster
 
 ## Upcoming Features
 
-- MongoDB cluster setup
-- MongoDB cluster setup with arbiter
+- MongoDB sharded cluster setup
 - Customizable configuration changes in MongoDB
 - TLS security support
 - Backup and restore support
 - DB and user creation 
 - Insightful Grafana dashboards
-
