@@ -21,6 +21,7 @@ const (
 // MongoDBParameters is a struct for MongoDB related inputs
 type MongoDBParameters struct {
 	MongoURL     string
+	SetupType    string
 	Namespace    string
 	Name         string
 	Password     string
@@ -40,6 +41,18 @@ func initiateMongoClient(params MongoDBParameters) *mongo.Client {
 	return client
 }
 
+// initiateMongoClusterClient is a method to create client connection with MongoDB Cluster
+func initiateMongoClusterClient(params MongoDBParameters) *mongo.Client {
+	logger := logGenerator(params.Name, params.Namespace, "MongoDB Cluster Client")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(params.MongoURL))
+	if err != nil {
+		logger.Error(err, "Unable to establish connection with MongoDB Cluster")
+	}
+	return client
+}
+
 // discconnectMongoClient is a method to disconnect MongoDB client
 func discconnectMongoClient(client *mongo.Client) error {
 	defer func() {
@@ -53,7 +66,12 @@ func discconnectMongoClient(client *mongo.Client) error {
 //nolint:govet
 // CreateMonitoringUser is a method to create monitoring user inside MongoDB
 func CreateMonitoringUser(params MongoDBParameters) error {
-	client := initiateMongoClient(params)
+	var client *mongo.Client
+	if params.SetupType == "cluster" {
+		client = initiateMongoClusterClient(params)
+	} else {
+		client = initiateMongoClient(params)
+	}
 	response := client.Database(dbName).RunCommand(context.Background(), bson.D{
 		{"createUser", monitoringUser}, {"pwd", params.Password},
 		{"roles", []bson.M{{"role": "clusterMonitor", "db": "admin"}, {"role": "read", "db": "local"}}}},
@@ -71,7 +89,12 @@ func CreateMonitoringUser(params MongoDBParameters) error {
 //nolint:govet
 // GetMongoDBUser is a method to check if user exists in MongoDB
 func GetMongoDBUser(params MongoDBParameters) (bool, error) {
-	client := initiateMongoClient(params)
+	var client *mongo.Client
+	if params.SetupType == "cluster" {
+		client = initiateMongoClusterClient(params)
+	} else {
+		client = initiateMongoClient(params)
+	}
 	collection := client.Database("admin").Collection("system.users")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

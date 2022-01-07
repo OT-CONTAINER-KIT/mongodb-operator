@@ -19,6 +19,7 @@ func InitializeMongoDBCluster(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
 		Namespace:    cr.Namespace,
 		Name:         cr.ObjectMeta.Name,
 		ClusterNodes: cr.Spec.MongoDBClusterSize,
+		SetupType:    "standalone",
 	}
 	err := mongogo.InitiateMongoClusterRS(mongoParams)
 	if err != nil {
@@ -40,6 +41,7 @@ func CheckMongoClusterStateInitialized(cr *opstreelabsinv1alpha1.MongoDBCluster)
 		MongoURL:  mongoURL,
 		Namespace: cr.Namespace,
 		Name:      cr.ObjectMeta.Name,
+		SetupType: "standalone",
 	}
 	state, err := mongogo.CheckMongoClusterInitialized(mongoParams)
 	if err != nil {
@@ -63,6 +65,7 @@ func CreateMongoDBMonitoringUser(cr *opstreelabsinv1alpha1.MongoDB) error {
 		Namespace: cr.Namespace,
 		Name:      cr.ObjectMeta.Name,
 		Password:  monitoringPassword,
+		SetupType: "standalone",
 	}
 	err := mongogo.CreateMonitoringUser(mongoParams)
 	if err != nil {
@@ -85,6 +88,7 @@ func CreateMongoDBClusterMonitoringUser(cr *opstreelabsinv1alpha1.MongoDBCluster
 		Namespace: cr.Namespace,
 		Name:      cr.ObjectMeta.Name,
 		Password:  monitoringPassword,
+		SetupType: "cluster",
 	}
 	mongoURL := []string{"mongodb://", cr.Spec.MongoDBSecurity.MongoDBAdminUser, ":", password, "@"}
 	for node := 0; node < int(*cr.Spec.MongoDBClusterSize); node++ {
@@ -115,6 +119,7 @@ func CheckMongoDBClusterMonitoringUser(cr *opstreelabsinv1alpha1.MongoDBCluster)
 		Namespace: cr.Namespace,
 		Name:      cr.ObjectMeta.Name,
 		UserName:  &monitoringUser,
+		SetupType: "cluster",
 	}
 	mongoURL := []string{"mongodb://", cr.Spec.MongoDBSecurity.MongoDBAdminUser, ":", password, "@"}
 	for node := 0; node < int(*cr.Spec.MongoDBClusterSize); node++ {
@@ -147,6 +152,7 @@ func CheckMonitoringUser(cr *opstreelabsinv1alpha1.MongoDB) bool {
 		Namespace: cr.Namespace,
 		Name:      cr.ObjectMeta.Name,
 		UserName:  &monitoringUser,
+		SetupType: "standalone",
 	}
 	output, err := mongogo.GetMongoDBUser(mongoParams)
 	if err != nil {

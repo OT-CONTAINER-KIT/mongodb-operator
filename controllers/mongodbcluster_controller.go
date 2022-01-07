@@ -77,19 +77,18 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 	if int(mongoDBSTS.Status.ReadyReplicas) != int(*instance.Spec.MongoDBClusterSize) {
 		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
-	} else {
-		state, err := k8sgo.CheckMongoClusterStateInitialized(instance)
-		if err != nil || !state {
-			err = k8sgo.InitializeMongoDBCluster(instance)
-			if err != nil {
-				return ctrl.Result{RequeueAfter: time.Second * 10}, err
-			}
-			if !k8sgo.CheckMongoDBClusterMonitoringUser(instance) {
-				err = k8sgo.CreateMongoDBClusterMonitoringUser(instance)
-				if err != nil {
-					return ctrl.Result{RequeueAfter: time.Second * 10}, err
-				}
-			}
+	}
+	state, err := k8sgo.CheckMongoClusterStateInitialized(instance)
+	if err != nil || !state {
+		err = k8sgo.InitializeMongoDBCluster(instance)
+		if err != nil {
+			return ctrl.Result{RequeueAfter: time.Second * 10}, err
+		}
+	}
+	if !k8sgo.CheckMongoDBClusterMonitoringUser(instance) {
+		err = k8sgo.CreateMongoDBClusterMonitoringUser(instance)
+		if err != nil {
+			return ctrl.Result{RequeueAfter: time.Second * 10}, err
 		}
 	}
 	return ctrl.Result{}, nil
