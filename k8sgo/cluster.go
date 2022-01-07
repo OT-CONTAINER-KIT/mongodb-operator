@@ -6,34 +6,6 @@ import (
 	opstreelabsinv1alpha1 "mongodb-operator/api/v1alpha1"
 )
 
-const (
-	KeyFileData = "kCiS/Cxw0lF2ZvHSqdtLGPsx77KwPf8e1hV0rXtViMVFlOgO2XVLsRqe12iRJT9gSUIQwo87tISyoyluO1EeZG6IpiZ+d/diwLzd3nRlIuDIvE/AnyrVN4HaWAMNeujK81z+vkmPvWj+g1C91l0k1iq93pCYTOS6POfdHIs/mcbWGs2WQggL2AXsTHjJTfBvD77Rm7nKrFu682zPs3xmUHkOADOigg+G4S4av2j6RvjCVjeUCuYVRL7/VPxFVY3iv/mCbSiijIxxsQalHbLAGlaQqVGJemtALcoyYTeoeCP20VnfZSxMl4QoCQP213Av4SRbpGZZpv2yZ2mhun5+e9+iyxUKQqAzLYPq/h0WYntQ+ZYs5qoaKwsLicox93o08W/S0hlhsTz4NGmWGIKfg064L+fIbDT2ep5lXcTH+z3MM+Rj7QdppVrBy1SNnMwMmzcv+f8ZRtIif10GxksDLwZgX66QhpmBfU+wxsD02TQVjnVtfGpGf4MkpRTOe+mPIY/ee4sUsNeBdg1P4iR2Sv49t1pTwwN4sWEXHcSDUSVCDpSEtBzN0A5V/+ONR5y5IlGcOjM9dAOErTWVngI82kJhyFFPRENdvmwrx7Sx57+DFcTk8xay0GCwhWgmaxEd/iW3ViJ8mo57hWegU7nss8ot1ro9/VJHHMQG+CeM/EWqTEFJuHBnebQliggqfez9sfqCdxS2rzdUQM6qwST+X4P3KEjhwD0iTCRHyVYel58ScExOkxdCuPTZyAv6MpYiCOa2CePh7fsXCiclrTBBamdri6YgRvXHFMuLsi3x6QswgJWWYwXXJywk6wGB/CeumPoDjVDCRVENsbxUCMWW3qeBEWzsHh74o9+nASVIfZalAT7DD7HORcVUkih/YMCDcR+iPc8SzvOpeDBe3zezXQTKNBC5BW63EP0xcuCfMkjVmwZYuA4DfeTFKqbG2u4bcy/W9J6jZHSqDMhk3sJNZX2d5wXar40SuqCVi3NifkWBiCBT"
-)
-
-// GenerateMongoKeyFile is a method to generate keyfile for mongodb cluster
-func GenerateMongoKeyFile(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
-	appName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "cluster-key")
-	labels := map[string]string{
-		"app":           appName,
-		"mongodb_setup": "cluster",
-		"role":          "cluster",
-	}
-	params := secretsParameters{
-		SecretsMeta: generateObjectMetaInformation(appName, cr.Namespace, labels, generateAnnotations()),
-		OwnerDef:    mongoClusterAsOwner(cr),
-		Namespace:   cr.Namespace,
-		Labels:      labels,
-		Annotations: generateAnnotations(),
-		Password:    KeyFileData,
-		Name:        appName,
-	}
-	err := CreateSecret(params)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 // CreateMongoClusterService is a method to create service for mongodb cluster
 func CreateMongoClusterService(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
 	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "Service")

@@ -16,16 +16,7 @@ spec:
     singular: mongodbcluster
   scope: Namespaced
   versions:
-  - additionalPrinterColumns:
-    - description: MongoDB Cluster Size
-      jsonPath: .spec.clusterSize
-      name: MongoDBClusterSize
-      type: integer
-    - description: Arbiter Status
-      jsonPath: .spec.enableMongoArbiter
-      name: ArbiterStatus
-      type: boolean
-    name: v1alpha1
+  - name: v1alpha1
     schema:
       openAPIV3Schema:
         description: MongoDBCluster is the Schema for the mongodbclusters API
@@ -176,7 +167,6 @@ spec:
                 type: object
             required:
             - clusterSize
-            - enableMongoArbiter
             - kubernetesConfig
             - mongoDBSecurity
             type: object
@@ -321,7 +311,6 @@ spec:
                     type: object
                 required:
                 - clusterSize
-                - enableMongoArbiter
                 - kubernetesConfig
                 - mongoDBSecurity
                 type: object
