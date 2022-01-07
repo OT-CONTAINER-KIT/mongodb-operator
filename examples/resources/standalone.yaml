@@ -5,7 +5,7 @@ metadata:
   name: mongodb
 spec:
   kubernetesConfig:
-    image: quay.io/opstree/mongodb:v5.0.5
+    image: quay.io/opstree/mongodb:v5.0
     imagePullPolicy: IfNotPresent
     resources:
       requests:
