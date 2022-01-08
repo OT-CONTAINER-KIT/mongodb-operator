@@ -38,11 +38,22 @@ The aim and purpose of creating this MongoDB operator are to provide an easy and
 
 ## Supported Features
 
-- MongoDB standalone setup
 - MongoDB replicated cluster setup
+- MongoDB standalone setup
+- MongoDB replicated cluster failover and recovery
 - Monitoring support with MongoDB Exporter
 - Password based authentication for MongoDB
 - Kubernetes's resources for MongoDB standalone and cluster
+
+## Prerequisites
+
+MongoDB Operator requires a Kubernetes cluster of version `>=1.16.0`. If you have just started with the CRD and Operators, its highly recommended using the latest version of Kubernetes.
+
+## Getting Started
+
+If you want to start using the mongodb-operator in a quickstart mode, you can begin with the [documentation](https://ot-container-kit.github.io/mongodb-operator/). It will help you and guide you through the setup of MongoDB step-by-step.
+
+The configuration for MongoDB and MongoDB cluster setup is defined inside the CRD manifests. But all the examples manifests can be found in the [examples](./examples) directory.
 
 ## Upcoming Features
 
