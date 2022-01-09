@@ -85,7 +85,7 @@ After the deployment, verify the installation of operator
 
 ```shell
 # Testing Operator
-$ helm test mongdb-operator --namespace ot-operators
+$ helm test mongodb-operator --namespace ot-operators
 ...
 NAME: mongodb-operator
 LAST DEPLOYED: Sun Jan  9 23:05:13 2022
