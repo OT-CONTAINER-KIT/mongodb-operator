@@ -55,6 +55,49 @@ If you want to start using the mongodb-operator in a quickstart mode, you can be
 
 The configuration for MongoDB and MongoDB cluster setup is defined inside the CRD manifests. But all the examples manifests can be found in the [examples](./examples) directory.
 
+## Quickstart
+
+### MongoDB Operator Setup
+
+The setup can be done by using helm. The mongodb-operator can easily get installed using helm commands.
+
+```shell
+# Add the helm chart
+$ helm repo add ot-helm https://ot-container-kit.github.io/helm-charts/
+...
+"ot-helm" has been added to your repositories
+````
+
+```shell
+# Deploy the MongoDB Operator
+$ helm upgrade mongodb-operator ot-helm/mongdb-operator \
+  --install --namespace ot-operators --install
+...
+Release "mongodb-operator" does not exist. Installing it now.
+NAME: mongodb-operator
+LAST DEPLOYED: Sun Jan  9 23:05:13 2022
+NAMESPACE: ot-operators
+STATUS: deployed
+REVISION: 1
+```
+
+After the deployment, verify the installation of operator
+
+```shell
+# Testing Operator
+$ helm test mongdb-operator --namespace ot-operators
+...
+NAME: mongodb-operator
+LAST DEPLOYED: Sun Jan  9 23:05:13 2022
+NAMESPACE: ot-operators
+STATUS: deployed
+REVISION: 1
+TEST SUITE:     mongodb-operator-test-connection
+Last Started:   Sun Jan  9 23:05:54 2022
+Last Completed: Sun Jan  9 23:06:01 2022
+Phase:          Succeeded
+```
+
 ## Upcoming Features
 
 - MongoDB sharded cluster setup
