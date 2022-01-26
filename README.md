@@ -38,11 +38,65 @@ The aim and purpose of creating this MongoDB operator are to provide an easy and
 
 ## Supported Features
 
-- MongoDB standalone setup
 - MongoDB replicated cluster setup
+- MongoDB standalone setup
+- MongoDB replicated cluster failover and recovery
 - Monitoring support with MongoDB Exporter
 - Password based authentication for MongoDB
 - Kubernetes's resources for MongoDB standalone and cluster
+
+## Prerequisites
+
+MongoDB Operator requires a Kubernetes cluster of version `>=1.16.0`. If you have just started with the CRD and Operators, its highly recommended using the latest version of Kubernetes.
+
+## Getting Started
+
+If you want to start using the mongodb-operator in a quickstart mode, you can begin with the [documentation](https://ot-container-kit.github.io/mongodb-operator/). It will help you and guide you through the setup of MongoDB step-by-step.
+
+The configuration for MongoDB and MongoDB cluster setup is defined inside the CRD manifests. But all the examples manifests can be found in the [examples](./examples) directory.
+
+## Quickstart
+
+### MongoDB Operator Setup
+
+The setup can be done by using helm. The mongodb-operator can easily get installed using helm commands.
+
+```shell
+# Add the helm chart
+$ helm repo add ot-helm https://ot-container-kit.github.io/helm-charts/
+...
+"ot-helm" has been added to your repositories
+````
+
+```shell
+# Deploy the MongoDB Operator
+$ helm upgrade mongodb-operator ot-helm/mongdb-operator \
+  --install --namespace ot-operators --install
+...
+Release "mongodb-operator" does not exist. Installing it now.
+NAME: mongodb-operator
+LAST DEPLOYED: Sun Jan  9 23:05:13 2022
+NAMESPACE: ot-operators
+STATUS: deployed
+REVISION: 1
+```
+
+After the deployment, verify the installation of operator
+
+```shell
+# Testing Operator
+$ helm test mongodb-operator --namespace ot-operators
+...
+NAME: mongodb-operator
+LAST DEPLOYED: Sun Jan  9 23:05:13 2022
+NAMESPACE: ot-operators
+STATUS: deployed
+REVISION: 1
+TEST SUITE:     mongodb-operator-test-connection
+Last Started:   Sun Jan  9 23:05:54 2022
+Last Completed: Sun Jan  9 23:06:01 2022
+Phase:          Succeeded
+```
 
 ## Upcoming Features
 
