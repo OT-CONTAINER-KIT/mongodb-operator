@@ -11,20 +11,20 @@ MongoDB is a NoSQL document database system that scales well horizontally and im
 - Cluster replicated mode
 - Cluster sharded mode
 
-## MongoDB Standalone Setup
+## Standalone Setup
 
 Just like any database mongodb also supports the standalone setup in which a single standalone instance is created and we setup MongoDB software on top of it. For small data chunks and development environment this setup can be ideal but in production grade environment this setup is not recommended because of the scalability and failover issues.
 
 ![](https://github.com/OT-CONTAINER-KIT/mongodb-operator/raw/docs-update/static/mongodb-standalone.png)
 
-## MongoDB Replicated Setup
+## Replicated Setup
 
 A replica set in MongoDB is a group of mongod processes that maintain the same data set. Replica sets provide redundancy and high availability, and are the basis for all production deployments.
 These Mongod processes usually run on different nodes(machines) which together form a Replica set cluster.
 
 ![](https://github.com/OT-CONTAINER-KIT/mongodb-operator/raw/docs-update/static/mongodb-replicated.png)
 
-## MongoDB Sharded Setup
+## Sharded Setup
 
 Sharding is a method for distributing data across multiple machines. MongoDB uses sharding to support deployments with very large data sets and high throughput operations.
 
