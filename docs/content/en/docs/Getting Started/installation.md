@@ -19,7 +19,7 @@ Setup of MongoDB operator can be easily done by using simple [helm](https://helm
 
 {{< alert title="Note" >}}The recommded of way of installation is helm.{{< /alert >}}
 
-## Helm
+## Helm Installation
 
 The setup can be done by using helm. The mongodb-operator can easily get installed using helm commands.
 
@@ -32,8 +32,8 @@ $ helm repo add ot-helm https://ot-container-kit.github.io/helm-charts/
 
 ```shell
 # Deploy the MongoDB Operator
-$ helm upgrade mongodb-operator ot-helm/mongdb-operator \
-  --install --namespace ot-operators --install
+$ helm install mongodb-operator ot-helm/mongdb-operator \
+  --namespace ot-operators
 ...
 Release "mongodb-operator" does not exist. Installing it now.
 NAME: mongodb-operator
@@ -60,13 +60,24 @@ Last Completed: Sun Jan  9 23:06:01 2022
 Phase:          Succeeded
 ```
 
-## Kubectl
+Verify the deployment of MongoDB Operator using `kubectl` command.
+
+```shell
+# List the pod and status of mongodb-operator
+$ kubectl get pods -n ot-operators -l name=mongodb-operator
+...
+NAME                               READY   STATUS    RESTARTS   AGE
+mongodb-operator-fc88b45b5-8rmtj   1/1     Running   0          21d
+```
+
+## Kubectl Installation
 
 In any case using helm chart is not a possiblity, the MongoDB operator can be installed by `kubectl` commands as well.
 
 As a first step, we need to setup a namespace and then deploy the CRD definitions inside Kubernetes.
 
 ```shell
+# Setup of CRDs
 $ kubectl create namespace ot-operators
 $ kubectl apply -f https://github.com/OT-CONTAINER-KIT/mongodb-operator/raw/main/config/crd/bases/opstreelabs.in_mongodbs.yaml
 $ kubectl apply -f https://github.com/OT-CONTAINER-KIT/mongodb-operator/raw/main/config/crd/bases/opstreelabs.in_mongodbclusters.yaml
@@ -75,6 +86,7 @@ $ kubectl apply -f https://github.com/OT-CONTAINER-KIT/mongodb-operator/raw/main
 Once we have namespace in the place, we need to setup the RBAC related stuff like:- **ClusterRoleBindings**, **ClusterRole**, **Serviceaccount**.
 
 ```shell
+# Setup of RBAC account
 $ kubectl apply -f https://raw.githubusercontent.com/OT-CONTAINER-KIT/mongodb-operator/main/config/rbac/service_account.yaml
 $ kubectl apply -f https://raw.githubusercontent.com/OT-CONTAINER-KIT/mongodb-operator/main/config/rbac/role.yaml
 $ kubectl apply -f https://github.com/OT-CONTAINER-KIT/mongodb-operator/blob/main/config/rbac/role_binding.yaml
@@ -83,5 +95,16 @@ $ kubectl apply -f https://github.com/OT-CONTAINER-KIT/mongodb-operator/blob/mai
 As last part of the setup, now we can deploy the MongoDB Operator as deployment of Kubernetes.
 
 ```shell
+# Deployment for MongoDB Operator
 $ kubectl apply -f https://github.com/OT-CONTAINER-KIT/mongodb-operator/raw/main/config/manager/manager.yaml
+```
+
+Verify the deployment of MongoDB Operator using `kubectl` command.
+
+```shell
+# List the pod and status of mongodb-operator
+$ kubectl get pods -n ot-operators -l name=mongodb-operator
+...
+NAME                               READY   STATUS    RESTARTS   AGE
+mongodb-operator-fc88b45b5-8rmtj   1/1     Running   0          21d
 ```
