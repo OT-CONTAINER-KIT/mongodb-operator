@@ -8,7 +8,7 @@ description: >
 
 The MongoDB operator is capable for setting up MongoDB in the standalone mode with alot of additional power-ups like monitoring.
 
-In this guide, we will see how we can setup MongoDB standalone with the help MongoDB operator and custom CRDS. We are going to use Kubernetes deployment tools like:- **[helm](https://helm.sh)** and **[kubectl](https://kubernetes.io/docs/reference/kubectl/overview/)**.
+In this guide, we will see how we can set up MongoDB standalone with the help MongoDB operator and custom CRDS. We are going to use Kubernetes deployment tools like:- **[helm](https://helm.sh)** and **[kubectl](https://kubernetes.io/docs/reference/kubectl/overview/)**.
 
 Standalone architecture:
 
@@ -76,6 +76,18 @@ $ echo ${PASSWORD}
 G7orFUuIrajGDK1iQzoD
 ```
 
+## Setup using Kubectl Commands
+
+It is not a recommended way for setting for MongoDB database, it can be used for the POC and learning of MongoDB operator deployment.
+
+All the **kubectl** related manifest are located inside the **[examples]()** folder which can be applied using `kubectl apply -f`.
+
+For an example:-
+
+```shell
+$ kubectl apply -f examples/basic/standalone.yaml -n ot-operators
+```
+
 ## Validation of MongoDB Database
 
 To validate the state of MongoDB database, we can take the shell access of the MongoDB pod.
@@ -101,8 +113,8 @@ Using Mongosh:		1.1.7
 
 We can also check the state of MongoDB by listing out the stats from admin database, but it would require username and password for same.
 
-```javascript
-// MongoDB command for checking db stats
+```shell
+# MongoDB command for checking db stats
 $ mongosh -u $MONGO_ROOT_USERNAME -p $MONGO_ROOT_PASSWORD --eval "db.stats()"
 ...
 Current Mongosh Log ID:	61f820ab99bd3271e034d3b6
@@ -128,14 +140,31 @@ Using Mongosh:		1.1.7
 }
 ```
 
-## Setup using Kubectl Commands
-
-It is not a recommended way for setting for MongoDB database, it can be use for the POC and learning of MongoDB operator deployment.
-
-All the **kubectl** related manifest are located inside the **[examples]()** folder which can be applied using `kubectl apply -f`.
-
-For an example:-
+Create a database inside MongoDB database and try to insert some data inside it.
 
 ```shell
-$ kubectl apply -f examples/basic -n ot-operators
+# create database inside MongoDB
+$ use validatedb
+
+$ db.user.insert({name: "Abhishek Dubey", age: 24})
+$ db.user.insert({name: "Sajal Jain", age: 32})
+...
+WriteResult({ "nInserted" : 1 })
+```
+
+Let's try to get out information from `validatedb` to see if write operation is successful or not.
+
+```shell
+$ db.user.find().pretty();
+...
+{
+	"_id" : ObjectId("61fbe07d052a532fa6842a00"),
+	"name" : "Abhishek Dubey",
+	"age" : 24
+}
+{
+	"_id" : ObjectId("61fbe1b7052a532fa6842a01"),
+	"name" : "Sajal Jain",
+	"age" : 32
+}
 ```
