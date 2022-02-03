@@ -19,7 +19,7 @@ Setup of MongoDB operator can be easily done by using simple [helm](https://helm
 
 {{< alert title="Note" >}}The recommded of way of installation is helm.{{< /alert >}}
 
-## Helm Installation
+## Operator Setup by Helm
 
 The setup can be done by using helm. The mongodb-operator can easily get installed using helm commands.
 
@@ -70,7 +70,7 @@ NAME                               READY   STATUS    RESTARTS   AGE
 mongodb-operator-fc88b45b5-8rmtj   1/1     Running   0          21d
 ```
 
-## Kubectl Installation
+## Operator Setup by Kubectl
 
 In any case using helm chart is not a possiblity, the MongoDB operator can be installed by `kubectl` commands as well.
 

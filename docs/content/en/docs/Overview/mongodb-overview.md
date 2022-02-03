@@ -25,5 +25,5 @@ A document can contain a number of fields (value), regarding the details of the 
 ## MongoDB Database
 
 <div align="center">
-    <img src="https://github.com/OT-CONTAINER-KIT/mongodb-operator/raw/docs-update/static/mongo-db.drawio.png">
+    <img src="https://github.com/OT-CONTAINER-KIT/mongodb-operator/raw/main/static/mongo-db.drawio.png">
 </div>
