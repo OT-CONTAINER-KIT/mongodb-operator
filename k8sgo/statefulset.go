@@ -57,15 +57,23 @@ func CreateOrUpdateStateFul(params statefulSetParameters) error {
 // patchStateFulSet will patch Statefulset
 func patchStateFulSet(storedStateful *appsv1.StatefulSet, newStateful *appsv1.StatefulSet, namespace string) error {
 	logger := logGenerator(storedStateful.Name, namespace, "StatefulSet")
-	patchResult, err := patch.DefaultPatchMaker.Calculate(storedStateful, newStateful)
+	// adding meta information
+	newStateful.ResourceVersion = storedStateful.ResourceVersion
+	newStateful.CreationTimestamp = storedStateful.CreationTimestamp
+	newStateful.ManagedFields = storedStateful.ManagedFields
+	patchResult, err := patch.DefaultPatchMaker.Calculate(storedStateful, newStateful,
+		patch.IgnoreStatusFields(),
+		patch.IgnoreVolumeClaimTemplateTypeMetaAndStatus(),
+		patch.IgnoreField("kind"),
+		patch.IgnoreField("apiVersion"),
+		patch.IgnoreField("metadata"),
+	)
 	if err != nil {
 		logger.Error(err, "Unable to patch mongodb statefulset with comparison object")
 		return err
 	}
 	if !patchResult.IsEmpty() {
-		newStateful.ResourceVersion = storedStateful.ResourceVersion
-		newStateful.CreationTimestamp = storedStateful.CreationTimestamp
-		newStateful.ManagedFields = storedStateful.ManagedFields
+		logger.Info("Changes in statefulset Detected, Updating...", "patch", string(patchResult.Patch))
 		for key, value := range storedStateful.Annotations {
 			if _, present := newStateful.Annotations[key]; !present {
 				newStateful.Annotations[key] = value
@@ -77,6 +85,7 @@ func patchStateFulSet(storedStateful *appsv1.StatefulSet, newStateful *appsv1.St
 		}
 		return updateStateFulSet(namespace, newStateful)
 	}
+	logger.Info("Reconciliation Complete, no Changes required.")
 	return nil
 }
 

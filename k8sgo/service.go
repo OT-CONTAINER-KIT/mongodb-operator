@@ -46,16 +46,22 @@ func CreateOrUpdateService(params serviceParameters) error {
 // patchService will patch Kubernetes service
 func patchService(storedService *corev1.Service, newService *corev1.Service, namespace string) error {
 	logger := logGenerator(storedService.Name, namespace, "Service")
-	patchResult, err := patch.DefaultPatchMaker.Calculate(storedService, newService, patch.IgnoreStatusFields())
+	// adding meta fields
+	newService.ResourceVersion = storedService.ResourceVersion
+	newService.CreationTimestamp = storedService.CreationTimestamp
+	newService.ManagedFields = storedService.ManagedFields
+	newService.Spec.ClusterIP = storedService.Spec.ClusterIP
+
+	patchResult, err := patch.DefaultPatchMaker.Calculate(storedService, newService,
+		patch.IgnoreStatusFields(),
+		patch.IgnoreField("kind"),
+		patch.IgnoreField("apiVersion"),
+	)
 	if err != nil {
 		logger.Error(err, "Unable to patch MongoDB service with comparison object")
 		return err
 	}
 	if !patchResult.IsEmpty() {
-		newService.Spec.ClusterIP = storedService.Spec.ClusterIP
-		newService.ResourceVersion = storedService.ResourceVersion
-		newService.CreationTimestamp = storedService.CreationTimestamp
-		newService.ManagedFields = storedService.ManagedFields
 		for key, value := range storedService.Annotations {
 			if _, present := newService.Annotations[key]; !present {
 				newService.Annotations[key] = value
