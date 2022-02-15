@@ -14,18 +14,20 @@ import (
 
 // statefulSetParameters is the input struct for MongoDB statefulset
 type statefulSetParameters struct {
-	StatefulSetMeta metav1.ObjectMeta
-	OwnerDef        metav1.OwnerReference
-	Namespace       string
-	ContainerParams containerParameters
-	Labels          map[string]string
-	Annotations     map[string]string
-	Replicas        *int32
-	PVCParameters   pvcParameters
-	ExtraVolumes    *[]corev1.Volume
-	ImagePullSecret *string
-	Affinity        *corev1.Affinity
-	NodeSelector    map[string]string
+	StatefulSetMeta   metav1.ObjectMeta
+	OwnerDef          metav1.OwnerReference
+	Namespace         string
+	ContainerParams   containerParameters
+	Labels            map[string]string
+	Annotations       map[string]string
+	Replicas          *int32
+	PVCParameters     pvcParameters
+	ExtraVolumes      *[]corev1.Volume
+	ImagePullSecret   *string
+	Affinity          *corev1.Affinity
+	NodeSelector      map[string]string
+	Tolerations       *[]corev1.Toleration
+	PriorityClassName string
 }
 
 // pvcParameters is the structure for MongoDB PVC
@@ -140,14 +142,18 @@ func generateStatefulSetDef(params statefulSetParameters) *appsv1.StatefulSet {
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{Labels: params.Labels},
 				Spec: corev1.PodSpec{
-					Containers:   generateContainerDef(params.StatefulSetMeta.Name, params.ContainerParams),
-					NodeSelector: params.NodeSelector,
-					Affinity:     params.Affinity,
+					Containers:        generateContainerDef(params.StatefulSetMeta.Name, params.ContainerParams),
+					NodeSelector:      params.NodeSelector,
+					Affinity:          params.Affinity,
+					PriorityClassName: params.PriorityClassName,
 				},
 			},
 		},
 	}
 
+	if params.Tolerations != nil {
+		statefulset.Spec.Template.Spec.Tolerations = *params.Tolerations
+	}
 	if params.ContainerParams.PersistenceEnabled != nil && *params.ContainerParams.PersistenceEnabled {
 		statefulset.Spec.VolumeClaimTemplates = append(statefulset.Spec.VolumeClaimTemplates, generatePersistentVolumeTemplate(params.PVCParameters))
 	}
