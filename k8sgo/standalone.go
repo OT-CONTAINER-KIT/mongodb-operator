@@ -113,9 +113,11 @@ func getMongoDBStandaloneParams(cr *opstreelabsinv1alpha1.MongoDB) statefulSetPa
 			Resources:       cr.Spec.KubernetesConfig.Resources,
 			MongoSetupType:  "standalone",
 		},
-		Replicas:    &replicas,
-		Labels:      labels,
-		Annotations: generateAnnotations(),
+		Replicas:     &replicas,
+		Labels:       labels,
+		Annotations:  generateAnnotations(),
+		NodeSelector: cr.Spec.KubernetesConfig.NodeSelector,
+		Affinity:     cr.Spec.KubernetesConfig.Affinity,
 	}
 
 	if cr.Spec.KubernetesConfig.ImagePullSecret != nil {
