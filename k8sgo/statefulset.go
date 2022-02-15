@@ -23,6 +23,7 @@ type statefulSetParameters struct {
 	Replicas        *int32
 	PVCParameters   pvcParameters
 	ExtraVolumes    *[]corev1.Volume
+	ImagePullSecret *string
 }
 
 // pvcParameters is the structure for MongoDB PVC
@@ -149,6 +150,9 @@ func generateStatefulSetDef(params statefulSetParameters) *appsv1.StatefulSet {
 	if params.ExtraVolumes != nil {
 		statefulset.Spec.Template.Spec.Volumes = *params.ExtraVolumes
 	}
+	if params.ImagePullSecret != nil {
+		statefulset.Spec.Template.Spec.ImagePullSecrets = []corev1.LocalObjectReference{{Name: *params.ImagePullSecret}}
+	}
 	AddOwnerRefToObject(statefulset, params.OwnerDef)
 	return statefulset
 }
@@ -165,6 +169,7 @@ func generatePersistentVolumeTemplate(params pvcParameters) corev1.PersistentVol
 					corev1.ResourceName(corev1.ResourceStorage): resource.MustParse(params.StorageSize),
 				},
 			},
+			StorageClassName: params.StorageClassName,
 		},
 	}
 }
