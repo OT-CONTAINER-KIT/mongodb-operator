@@ -118,6 +118,9 @@ func getMongoDBStandaloneParams(cr *opstreelabsinv1alpha1.MongoDB) statefulSetPa
 		Annotations: generateAnnotations(),
 	}
 
+	if cr.Spec.KubernetesConfig.ImagePullSecret != nil {
+		params.ImagePullSecret = cr.Spec.KubernetesConfig.ImagePullSecret
+	}
 	if cr.Spec.MongoDBSecurity != nil {
 		params.ContainerParams.MongoDBUser = &cr.Spec.MongoDBSecurity.MongoDBAdminUser
 		params.ContainerParams.SecretName = cr.Spec.MongoDBSecurity.SecretRef.Name
