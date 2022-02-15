@@ -24,6 +24,8 @@ type statefulSetParameters struct {
 	PVCParameters   pvcParameters
 	ExtraVolumes    *[]corev1.Volume
 	ImagePullSecret *string
+	Affinity        *corev1.Affinity
+	NodeSelector    map[string]string
 }
 
 // pvcParameters is the structure for MongoDB PVC
@@ -138,7 +140,9 @@ func generateStatefulSetDef(params statefulSetParameters) *appsv1.StatefulSet {
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{Labels: params.Labels},
 				Spec: corev1.PodSpec{
-					Containers: generateContainerDef(params.StatefulSetMeta.Name, params.ContainerParams),
+					Containers:   generateContainerDef(params.StatefulSetMeta.Name, params.ContainerParams),
+					NodeSelector: params.NodeSelector,
+					Affinity:     params.Affinity,
 				},
 			},
 		},

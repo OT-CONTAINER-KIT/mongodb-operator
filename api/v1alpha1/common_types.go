@@ -10,6 +10,8 @@ type KubernetesConfig struct {
 	ImagePullPolicy corev1.PullPolicy            `json:"imagePullPolicy,omitempty"`
 	Resources       *corev1.ResourceRequirements `json:"resources,omitempty"`
 	ImagePullSecret *string                      `json:"imagePullSecret,omitempty"`
+	NodeSelector    map[string]string            `json:"nodeSelector,omitempty"`
+	Affinity        *corev1.Affinity             `json:"mongoAffinity,omitempty"`
 }
 
 // MongoDBSecurity is the JSON struct for MongoDB security configuration
