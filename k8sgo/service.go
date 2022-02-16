@@ -134,5 +134,6 @@ func generateServiceDef(params serviceParameters) *corev1.Service {
 	if params.HeadlessService {
 		service.Spec.ClusterIP = "None"
 	}
+	AddOwnerRefToObject(service, params.OwnerDef)
 	return service
 }
