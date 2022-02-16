@@ -125,11 +125,13 @@ func getMongoDBClusterParams(cr *opstreelabsinv1alpha1.MongoDBCluster) statefulS
 			MongoReplicaSetName: &cr.ObjectMeta.Name,
 			MongoSetupType:      "cluster",
 		},
-		Replicas:     cr.Spec.MongoDBClusterSize,
-		Labels:       labels,
-		Annotations:  generateAnnotations(),
-		NodeSelector: cr.Spec.KubernetesConfig.NodeSelector,
-		Affinity:     cr.Spec.KubernetesConfig.Affinity,
+		Replicas:          cr.Spec.MongoDBClusterSize,
+		Labels:            labels,
+		Annotations:       generateAnnotations(),
+		NodeSelector:      cr.Spec.KubernetesConfig.NodeSelector,
+		Affinity:          cr.Spec.KubernetesConfig.Affinity,
+		PriorityClassName: cr.Spec.KubernetesConfig.PriorityClassName,
+		Tolerations:       cr.Spec.KubernetesConfig.Tolerations,
 	}
 
 	if cr.Spec.KubernetesConfig.ImagePullSecret != nil {
