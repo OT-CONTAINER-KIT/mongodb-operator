@@ -129,16 +129,16 @@ func generatePodDisruption(params PodDisruptionParameters) *policyv1.PodDisrupti
 		},
 	}
 	if params.MinAvailable != nil {
-	    pdbTemplate.Spec.MinAvailable = &intstr.IntOrString{
-	        Type:   intstr.Int,
-	        IntVal: int32(*params.MinAvailable),
-	    }
+		pdbTemplate.Spec.MinAvailable = &intstr.IntOrString{
+			Type:   intstr.Int,
+			IntVal: int32(*params.MinAvailable),
+		}
 	}
 	if params.MaxUnavailable != nil {
-	    pdbTemplate.Spec.MaxUnavailable = &intstr.IntOrString{
-	        Type:   intstr.Int,
-	        IntVal: int32(*params.MaxUnavailable),
-	    }
+		pdbTemplate.Spec.MaxUnavailable = &intstr.IntOrString{
+			Type:   intstr.Int,
+			IntVal: int32(*params.MaxUnavailable),
+		}
 	}
 	AddOwnerRefToObject(pdbTemplate, params.OwnerDef)
 	return pdbTemplate
