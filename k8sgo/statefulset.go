@@ -28,6 +28,7 @@ type statefulSetParameters struct {
 	NodeSelector      map[string]string
 	Tolerations       *[]corev1.Toleration
 	PriorityClassName string
+	SecurityContext   *corev1.PodSecurityContext
 }
 
 // pvcParameters is the structure for MongoDB PVC
@@ -147,6 +148,7 @@ func generateStatefulSetDef(params statefulSetParameters) *appsv1.StatefulSet {
 					NodeSelector:      params.NodeSelector,
 					Affinity:          params.Affinity,
 					PriorityClassName: params.PriorityClassName,
+					SecurityContext:   params.SecurityContext,
 				},
 			},
 		},

@@ -14,6 +14,7 @@ type KubernetesConfig struct {
 	Affinity          *corev1.Affinity             `json:"mongoAffinity,omitempty"`
 	Tolerations       *[]corev1.Toleration         `json:"tolerations,omitempty"`
 	PriorityClassName string                       `json:"priorityClassName,omitempty"`
+	SecurityContext   *corev1.PodSecurityContext   `json:"securityContext,omitempty"`
 }
 
 // MongoDBSecurity is the JSON struct for MongoDB security configuration
