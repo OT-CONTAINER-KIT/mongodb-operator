@@ -132,6 +132,7 @@ func getMongoDBClusterParams(cr *opstreelabsinv1alpha1.MongoDBCluster) statefulS
 		Affinity:          cr.Spec.KubernetesConfig.Affinity,
 		PriorityClassName: cr.Spec.KubernetesConfig.PriorityClassName,
 		Tolerations:       cr.Spec.KubernetesConfig.Tolerations,
+		SecurityContext:   cr.Spec.KubernetesConfig.SecurityContext,
 	}
 
 	if cr.Spec.KubernetesConfig.ImagePullSecret != nil {
