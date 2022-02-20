@@ -10,7 +10,7 @@ spec:
   storage:
     accessModes: ["ReadWriteOnce"]
     storageSize: 1Gi
-    storageClass: csi-cephfs-sc
+    storageClass: gp2
   mongoDBSecurity:
     mongoDBAdminUser: admin
     secretRef:
