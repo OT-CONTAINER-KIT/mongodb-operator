@@ -68,6 +68,13 @@ func CreateMongoClusterSetup(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
 		logger.Error(err, "Cannot create cluster StatefulSet for MongoDB")
 		return err
 	}
+	if cr.Spec.PodDisruptionBudget != nil && cr.Spec.PodDisruptionBudget.Enabled {
+		err = CreateOrUpdatePodDisruption(getPodDisruptionParams(cr))
+		if err != nil {
+			logger.Error(err, "Cannot create PodDisruptionBudget for MongoDB")
+			return err
+		}
+	}
 	return nil
 }
 
@@ -164,6 +171,25 @@ func getMongoDBClusterParams(cr *opstreelabsinv1alpha1.MongoDBCluster) statefulS
 		}
 	} else {
 		params.ContainerParams.PersistenceEnabled = &falseProperty
+	}
+	return params
+}
+
+// getPodDisruptionParams is a method to create parameters for pod disruption budget
+func getPodDisruptionParams(cr *opstreelabsinv1alpha1.MongoDBCluster) PodDisruptionParameters {
+	appName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "cluster")
+	labels := map[string]string{
+		"app":           appName,
+		"mongodb_setup": "cluster",
+		"role":          "cluster",
+	}
+	params := PodDisruptionParameters{
+		PDBMeta:        generateObjectMetaInformation(appName, cr.Namespace, labels, generateAnnotations()),
+		OwnerDef:       mongoClusterAsOwner(cr),
+		Namespace:      cr.Namespace,
+		Labels:         labels,
+		MinAvailable:   cr.Spec.PodDisruptionBudget.MinAvailable,
+		MaxUnavailable: cr.Spec.PodDisruptionBudget.MaxUnavailable,
 	}
 	return params
 }

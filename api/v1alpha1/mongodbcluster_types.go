@@ -22,17 +22,24 @@ import (
 
 // MongoDBClusterSpec defines the desired state of MongoDBCluster
 type MongoDBClusterSpec struct {
-	MongoDBClusterSize *int32             `json:"clusterSize"`
-	EnableArbiter      *bool              `json:"enableMongoArbiter,omitempty"`
-	KubernetesConfig   KubernetesConfig   `json:"kubernetesConfig"`
-	Storage            *Storage           `json:"storage,omitempty"`
-	MongoDBSecurity    *MongoDBSecurity   `json:"mongoDBSecurity"`
-	MongoDBMonitoring  *MongoDBMonitoring `json:"mongoDBMonitoring,omitempty"`
+	MongoDBClusterSize  *int32                      `json:"clusterSize"`
+	EnableArbiter       *bool                       `json:"enableMongoArbiter,omitempty"`
+	KubernetesConfig    KubernetesConfig            `json:"kubernetesConfig"`
+	Storage             *Storage                    `json:"storage,omitempty"`
+	MongoDBSecurity     *MongoDBSecurity            `json:"mongoDBSecurity"`
+	MongoDBMonitoring   *MongoDBMonitoring          `json:"mongoDBMonitoring,omitempty"`
+	PodDisruptionBudget *MongoDBPodDisruptionBudget `json:"podDisruptionBudget,omitempty"`
+}
+
+// MongoDBPodDisruptionBudget defines the struct for MongoDB cluster
+type MongoDBPodDisruptionBudget struct {
+	Enabled        bool   `json:"enabled,omitempty"`
+	MinAvailable   *int32 `json:"minAvailable,omitempty"`
+	MaxUnavailable *int32 `json:"maxUnavailable,omitempty"`
 }
 
 // MongoDBClusterStatus defines the observed state of MongoDBCluster
 type MongoDBClusterStatus struct {
-	MongoDBCluster MongoDBClusterSpec `json:"mongodbCluster,omitempty"`
 }
 
 //+kubebuilder:object:root=true

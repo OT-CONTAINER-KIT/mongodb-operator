@@ -39,6 +39,7 @@ type MongoDBClusterReconciler struct {
 //+kubebuilder:rbac:groups=opstreelabs.in,resources=mongodbclusters,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=opstreelabs.in,resources=mongodbclusters/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=opstreelabs.in,resources=mongodbclusters/finalizers,verbs=update
+//+kubebuilder:rbac:groups="policy",resources=poddisruptionbudgets,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
