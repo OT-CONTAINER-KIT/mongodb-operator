@@ -8,7 +8,7 @@ import (
 	resource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/banzaicloud/k8s-objectmatcher/patch"
+	"github.com/iamabhishek-dubey/k8s-objectmatcher/patch"
 	appsv1 "k8s.io/api/apps/v1"
 )
 
@@ -69,6 +69,7 @@ func patchStateFulSet(storedStateful *appsv1.StatefulSet, newStateful *appsv1.St
 	patchResult, err := patch.DefaultPatchMaker.Calculate(storedStateful, newStateful,
 		patch.IgnoreStatusFields(),
 		patch.IgnoreVolumeClaimTemplateTypeMetaAndStatus(),
+		patch.IgnorePersistenVolumeFields(),
 		patch.IgnoreField("kind"),
 		patch.IgnoreField("apiVersion"),
 		patch.IgnoreField("metadata"),
@@ -171,7 +172,7 @@ func generateStatefulSetDef(params statefulSetParameters) *appsv1.StatefulSet {
 func generatePersistentVolumeTemplate(params pvcParameters) corev1.PersistentVolumeClaim {
 	return corev1.PersistentVolumeClaim{
 		TypeMeta:   generateMetaInformation("PersistentVolumeClaim", "v1"),
-		ObjectMeta: generateObjectMetaInformation(params.Name, params.Namespace, params.Labels, params.Annotations),
+		ObjectMeta: metav1.ObjectMeta{Name: params.Name},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			AccessModes: params.AccessModes,
 			Resources: corev1.ResourceRequirements{
