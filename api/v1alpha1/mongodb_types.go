@@ -30,7 +30,6 @@ type MongoDBSpec struct {
 
 // MongoDBStatus defines the observed state of MongoDB
 type MongoDBStatus struct {
-	MongoDB MongoDBSpec `json:"mongodb,omitempty"`
 }
 
 //+kubebuilder:object:root=true
