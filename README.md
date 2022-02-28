@@ -70,7 +70,7 @@ $ helm repo add ot-helm https://ot-container-kit.github.io/helm-charts/
 
 ```shell
 # Deploy the MongoDB Operator
-$ helm upgrade mongodb-operator ot-helm/mongdb-operator \
+$ helm upgrade mongodb-operator ot-helm/mongodb-operator \
   --install --namespace ot-operators --install
 ...
 Release "mongodb-operator" does not exist. Installing it now.
