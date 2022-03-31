@@ -138,6 +138,10 @@ func getMongoDBStandaloneParams(cr *opstreelabsinv1alpha1.MongoDB) statefulSetPa
 		params.ContainerParams.MonitoringImage = cr.Spec.MongoDBMonitoring.Image
 		params.ContainerParams.MonitoringImagePullPolicy = &cr.Spec.MongoDBMonitoring.ImagePullPolicy
 	}
+	if cr.Spec.MongoDBAdditionalConfig != nil {
+		params.ContainerParams.AdditonalConfig = cr.Spec.MongoDBAdditionalConfig
+		params.AdditionalConfig = cr.Spec.MongoDBAdditionalConfig
+	}
 	if cr.Spec.Storage != nil {
 		params.ContainerParams.PersistenceEnabled = &trueProperty
 		params.PVCParameters = pvcParameters{

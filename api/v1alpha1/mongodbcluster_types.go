@@ -22,13 +22,14 @@ import (
 
 // MongoDBClusterSpec defines the desired state of MongoDBCluster
 type MongoDBClusterSpec struct {
-	MongoDBClusterSize  *int32                      `json:"clusterSize"`
-	EnableArbiter       *bool                       `json:"enableMongoArbiter,omitempty"`
-	KubernetesConfig    KubernetesConfig            `json:"kubernetesConfig"`
-	Storage             *Storage                    `json:"storage,omitempty"`
-	MongoDBSecurity     *MongoDBSecurity            `json:"mongoDBSecurity"`
-	MongoDBMonitoring   *MongoDBMonitoring          `json:"mongoDBMonitoring,omitempty"`
-	PodDisruptionBudget *MongoDBPodDisruptionBudget `json:"podDisruptionBudget,omitempty"`
+	MongoDBClusterSize      *int32                      `json:"clusterSize"`
+	EnableArbiter           *bool                       `json:"enableMongoArbiter,omitempty"`
+	KubernetesConfig        KubernetesConfig            `json:"kubernetesConfig"`
+	Storage                 *Storage                    `json:"storage,omitempty"`
+	MongoDBSecurity         *MongoDBSecurity            `json:"mongoDBSecurity"`
+	MongoDBMonitoring       *MongoDBMonitoring          `json:"mongoDBMonitoring,omitempty"`
+	PodDisruptionBudget     *MongoDBPodDisruptionBudget `json:"podDisruptionBudget,omitempty"`
+	MongoDBAdditionalConfig *string                     `json:"mongoDBAdditionalConfig,omitempty"`
 }
 
 // MongoDBPodDisruptionBudget defines the struct for MongoDB cluster

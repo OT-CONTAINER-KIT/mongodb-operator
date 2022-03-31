@@ -28,6 +28,7 @@ type statefulSetParameters struct {
 	NodeSelector      map[string]string
 	Tolerations       *[]corev1.Toleration
 	PriorityClassName string
+	AdditionalConfig  *string
 	SecurityContext   *corev1.PodSecurityContext
 }
 
@@ -160,8 +161,8 @@ func generateStatefulSetDef(params statefulSetParameters) *appsv1.StatefulSet {
 	if params.ContainerParams.PersistenceEnabled != nil && *params.ContainerParams.PersistenceEnabled {
 		statefulset.Spec.VolumeClaimTemplates = append(statefulset.Spec.VolumeClaimTemplates, generatePersistentVolumeTemplate(params.PVCParameters))
 	}
-	if params.ExtraVolumes != nil {
-		statefulset.Spec.Template.Spec.Volumes = *params.ExtraVolumes
+	if params.AdditionalConfig != nil {
+		statefulset.Spec.Template.Spec.Volumes = getAdditionalConfig(params)
 	}
 	if params.ImagePullSecret != nil {
 		statefulset.Spec.Template.Spec.ImagePullSecrets = []corev1.LocalObjectReference{{Name: *params.ImagePullSecret}}
@@ -183,6 +184,22 @@ func generatePersistentVolumeTemplate(params pvcParameters) corev1.PersistentVol
 				},
 			},
 			StorageClassName: params.StorageClassName,
+		},
+	}
+}
+
+// getAdditionalConfig will return the MongoDB additional configuration
+func getAdditionalConfig(params statefulSetParameters) []corev1.Volume {
+	return []corev1.Volume{
+		{
+			Name: "external-config",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: *params.AdditionalConfig,
+					},
+				},
+			},
 		},
 	}
 }

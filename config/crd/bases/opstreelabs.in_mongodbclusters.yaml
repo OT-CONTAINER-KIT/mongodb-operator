@@ -16,16 +16,7 @@ spec:
     singular: mongodbcluster
   scope: Namespaced
   versions:
-  - additionalPrinterColumns:
-    - description: MongoDB cluster size
-      jsonPath: .spec.clusterSize
-      name: ClusterSize
-      type: integer
-    - description: Age of Cluster
-      jsonPath: .metadata.creationTimestamp
-      name: Age
-      type: date
-    name: v1alpha1
+  - name: v1alpha1
     schema:
       openAPIV3Schema:
         description: MongoDBCluster is the Schema for the mongodbclusters API
@@ -1165,6 +1156,8 @@ spec:
                 required:
                 - image
                 type: object
+              mongoDBAdditionalConfig:
+                type: string
               mongoDBMonitoring:
                 description: MongoDBMonitoring is the JSON struct for monitoring MongoDB
                 properties:
