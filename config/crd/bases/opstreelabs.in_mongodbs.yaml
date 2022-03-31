@@ -1151,6 +1151,8 @@ spec:
                 required:
                 - image
                 type: object
+              mongoDBAdditionalConfig:
+                type: string
               mongoDBMonitoring:
                 description: MongoDBMonitoring is the JSON struct for monitoring MongoDB
                 properties:

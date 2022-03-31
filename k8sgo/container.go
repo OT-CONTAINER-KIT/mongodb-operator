@@ -22,11 +22,12 @@ type containerParameters struct {
 	MonitoringSecret          *string
 	MonitoringResources       *corev1.ResourceRequirements
 	ExtraVolumeMount          *corev1.VolumeMount
+	AdditonalConfig           *string
 }
 
 // generateContainerDef is to generate container definition for MongoDB
 func generateContainerDef(name string, params containerParameters) []corev1.Container {
-	volumeMounts := getVolumeMount(name, params.PersistenceEnabled)
+	volumeMounts := getVolumeMount(name, params.PersistenceEnabled, params.AdditonalConfig)
 	if params.ExtraVolumeMount != nil {
 		volumeMounts = append(volumeMounts, *params.ExtraVolumeMount)
 	}
@@ -51,7 +52,7 @@ func generateContainerDef(name string, params containerParameters) []corev1.Cont
 }
 
 // getVolumeMount is a method to create volume mounting list
-func getVolumeMount(name string, persistenceEnabled *bool) []corev1.VolumeMount {
+func getVolumeMount(name string, persistenceEnabled *bool, additionalConfig *string) []corev1.VolumeMount {
 	var volumeMounts []corev1.VolumeMount
 	if persistenceEnabled != nil && *persistenceEnabled {
 		volumeMounts = []corev1.VolumeMount{
@@ -60,6 +61,13 @@ func getVolumeMount(name string, persistenceEnabled *bool) []corev1.VolumeMount 
 				MountPath: "/data/db",
 			},
 		}
+	}
+
+	if additionalConfig != nil {
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      "external-config",
+			MountPath: "/etc/mongo.d/extra",
+		})
 	}
 	return volumeMounts
 }
