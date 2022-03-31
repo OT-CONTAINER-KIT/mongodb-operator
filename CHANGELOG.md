@@ -1,3 +1,14 @@
+### v0.3.0
+##### March 31, 2022
+
+#### :tada: Features
+
+- Added dashboard for MongoDB and MongoDB cluster
+- Added alerting documentation and feature
+- Added support for securityContext 
+- Added PodDisruptionBudget support
+- Added support for custom configuration
+
 ### v0.2.0
 ##### Feburary 16, 2022
 
