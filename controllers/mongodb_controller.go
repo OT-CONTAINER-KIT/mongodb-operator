@@ -70,6 +70,10 @@ func (r *MongoDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err != nil {
 		return ctrl.Result{RequeueAfter: time.Second * 10}, err
 	}
+	err = k8sgo.CreateMongoStandaloneService(instance)
+	if err != nil {
+		return ctrl.Result{RequeueAfter: time.Second * 10}, err
+	}
 	mongoDBSTS, err := k8sgo.GetStateFulSet(instance.Namespace, fmt.Sprintf("%s-%s", instance.ObjectMeta.Name, "standalone"))
 	if err != nil {
 		return ctrl.Result{RequeueAfter: time.Second * 10}, err
@@ -83,10 +87,6 @@ func (r *MongoDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 				return ctrl.Result{RequeueAfter: time.Second * 10}, err
 			}
 		}
-	}
-	err = k8sgo.CreateMongoStandaloneService(instance)
-	if err != nil {
-		return ctrl.Result{RequeueAfter: time.Second * 10}, err
 	}
 	return ctrl.Result{RequeueAfter: time.Second * 10}, nil
 }
