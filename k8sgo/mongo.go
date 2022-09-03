@@ -10,8 +10,8 @@ import (
 // InitializeMongoDBCluster is a method to create a mongodb cluster
 func InitializeMongoDBCluster(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
 	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "MongoDB Cluster Setup")
-	serviceName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "cluster")
-	passwordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name}
+	serviceName := fmt.Sprintf("%s-%s.%s", cr.ObjectMeta.Name, "cluster", cr.Namespace)
+	passwordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name, SecretKey: *cr.Spec.MongoDBSecurity.SecretRef.Key}
 	password := getMongoDBPassword(passwordParams)
 	mongoURL := fmt.Sprintf("mongodb://%s:%s@%s:27017/", cr.Spec.MongoDBSecurity.MongoDBAdminUser, password, serviceName)
 	mongoParams := mongogo.MongoDBParameters{
@@ -33,8 +33,8 @@ func InitializeMongoDBCluster(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
 // CheckMongoClusterStateInitialized is a method to check mongodb cluster state
 func CheckMongoClusterStateInitialized(cr *opstreelabsinv1alpha1.MongoDBCluster) (bool, error) {
 	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "MongoDB Cluster Setup")
-	serviceName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "cluster")
-	passwordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name}
+	serviceName := fmt.Sprintf("%s-%s.%s", cr.ObjectMeta.Name, "cluster", cr.Namespace)
+	passwordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name, SecretKey: *cr.Spec.MongoDBSecurity.SecretRef.Key}
 	password := getMongoDBPassword(passwordParams)
 	mongoURL := fmt.Sprintf("mongodb://%s:%s@%s:27017/", cr.Spec.MongoDBSecurity.MongoDBAdminUser, password, serviceName)
 	mongoParams := mongogo.MongoDBParameters{
@@ -54,10 +54,10 @@ func CheckMongoClusterStateInitialized(cr *opstreelabsinv1alpha1.MongoDBCluster)
 // CreateMongoDBMonitoringUser is a method to create a monitoring user for MongoDB
 func CreateMongoDBMonitoringUser(cr *opstreelabsinv1alpha1.MongoDB) error {
 	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "MongoDB Monitoring User")
-	serviceName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "standalone")
-	passwordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name}
+	serviceName := fmt.Sprintf("%s-%s.%s", cr.ObjectMeta.Name, "standalone", cr.Namespace)
+	passwordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name, SecretKey: *cr.Spec.MongoDBSecurity.SecretRef.Key}
 	password := getMongoDBPassword(passwordParams)
-	monitoringPasswordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: fmt.Sprintf("%s-%s", serviceName, "monitoring")}
+	monitoringPasswordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "standalone-monitoring"), SecretKey: "password"}
 	monitoringPassword := getMongoDBPassword(monitoringPasswordParams)
 	mongoURL := fmt.Sprintf("mongodb://%s:%s@%s:27017/", cr.Spec.MongoDBSecurity.MongoDBAdminUser, password, serviceName)
 	mongoParams := mongogo.MongoDBParameters{
@@ -79,10 +79,9 @@ func CreateMongoDBMonitoringUser(cr *opstreelabsinv1alpha1.MongoDB) error {
 // CreateMongoDBClusterMonitoringUser is a method to create a monitoring user for MongoDB
 func CreateMongoDBClusterMonitoringUser(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
 	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "MongoDB Monitoring User")
-	serviceName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "cluster")
-	passwordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name}
+	passwordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name, SecretKey: *cr.Spec.MongoDBSecurity.SecretRef.Key}
 	password := getMongoDBPassword(passwordParams)
-	monitoringPasswordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: fmt.Sprintf("%s-%s", serviceName, "monitoring")}
+	monitoringPasswordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "cluster-monitoring"), SecretKey: "password"}
 	monitoringPassword := getMongoDBPassword(monitoringPasswordParams)
 	mongoParams := mongogo.MongoDBParameters{
 		Namespace: cr.Namespace,
@@ -112,7 +111,7 @@ func CreateMongoDBClusterMonitoringUser(cr *opstreelabsinv1alpha1.MongoDBCluster
 // CheckMongoDBClusterMonitoringUser is a method to check if monitoring user exists in MongoDB
 func CheckMongoDBClusterMonitoringUser(cr *opstreelabsinv1alpha1.MongoDBCluster) bool {
 	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "MongoDB Monitoring User")
-	passwordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name}
+	passwordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name, SecretKey: *cr.Spec.MongoDBSecurity.SecretRef.Key}
 	password := getMongoDBPassword(passwordParams)
 	monitoringUser := "monitoring"
 	mongoParams := mongogo.MongoDBParameters{
@@ -142,8 +141,8 @@ func CheckMongoDBClusterMonitoringUser(cr *opstreelabsinv1alpha1.MongoDBCluster)
 // CheckMonitoringUser is a method to check if monitoring user exists in MongoDB
 func CheckMonitoringUser(cr *opstreelabsinv1alpha1.MongoDB) bool {
 	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "MongoDB Monitoring User")
-	serviceName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "standalone")
-	passwordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name}
+	serviceName := fmt.Sprintf("%s-%s.%s", cr.ObjectMeta.Name, "standalone", cr.Namespace)
+	passwordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name, SecretKey: *cr.Spec.MongoDBSecurity.SecretRef.Key}
 	password := getMongoDBPassword(passwordParams)
 	monitoringUser := "monitoring"
 	mongoURL := fmt.Sprintf("mongodb://%s:%s@%s:27017/", cr.Spec.MongoDBSecurity.MongoDBAdminUser, password, serviceName)

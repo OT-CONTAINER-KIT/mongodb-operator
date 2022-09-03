@@ -16,6 +16,7 @@ type secretsParameters struct {
 	Annotations map[string]string
 	SecretsMeta metav1.ObjectMeta
 	SecretName  string
+	SecretKey   string
 }
 
 // CreateSecret is a method to create secret
@@ -52,7 +53,7 @@ func getMongoDBPassword(params secretsParameters) string {
 	if err != nil {
 		logger.Error(err, "Failed in getting existing secret for mongodb admin")
 	}
-	value := string(secretName.Data["password"])
+	value := string(secretName.Data[params.SecretKey])
 	return value
 }
 
