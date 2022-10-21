@@ -1251,14 +1251,15 @@ spec:
             type: object
           status:
             description: MongoDBClusterStatus defines the observed state of MongoDBCluster
-            state:
-              type: string
-            message:
-              type: string
-            version:
-              type: string
+            properties:
+              message:
+                type: string
+              state:
+                type: string
+              version:
+                type: string
             required:
-              - state
+            - state
             type: object
         type: object
     served: true
