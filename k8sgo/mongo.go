@@ -19,7 +19,7 @@ func InitializeMongoDBCluster(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
 		Namespace:    cr.Namespace,
 		Name:         cr.ObjectMeta.Name,
 		ClusterNodes: cr.Spec.MongoDBClusterSize,
-		SetupType:    "standalone",
+		SetupType:    "cluster",
 	}
 	err := mongogo.InitiateMongoClusterRS(mongoParams)
 	if err != nil {
@@ -31,17 +31,18 @@ func InitializeMongoDBCluster(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
 }
 
 // CheckMongoClusterStateInitialized is a method to check mongodb cluster state
-func CheckMongoClusterStateInitialized(cr *opstreelabsinv1alpha1.MongoDBCluster) (bool, error) {
+func CheckMongoClusterStateInitialized(cr *opstreelabsinv1alpha1.MongoDBCluster) (string, error) {
 	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "MongoDB Cluster Setup")
 	serviceName := fmt.Sprintf("%s-%s.%s", cr.ObjectMeta.Name, "cluster", cr.Namespace)
 	passwordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name, SecretKey: *cr.Spec.MongoDBSecurity.SecretRef.Key}
 	password := getMongoDBPassword(passwordParams)
 	mongoURL := fmt.Sprintf("mongodb://%s:%s@%s:27017/", cr.Spec.MongoDBSecurity.MongoDBAdminUser, password, serviceName)
 	mongoParams := mongogo.MongoDBParameters{
-		MongoURL:  mongoURL,
-		Namespace: cr.Namespace,
-		Name:      cr.ObjectMeta.Name,
-		SetupType: "standalone",
+		MongoURL:     mongoURL,
+		Namespace:    cr.Namespace,
+		Name:         cr.ObjectMeta.Name,
+		ClusterNodes: cr.Spec.MongoDBClusterSize,
+		SetupType:    "cluster",
 	}
 	state, err := mongogo.CheckMongoClusterInitialized(mongoParams)
 	if err != nil {
@@ -159,4 +160,28 @@ func CheckMonitoringUser(cr *opstreelabsinv1alpha1.MongoDB) bool {
 	}
 	logger.Info("Successfully executed the command to check monitoring user")
 	return output
+}
+
+func GetMongoDBParamsForScaling(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
+	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "MongoDB Scaling")
+	serviceName := fmt.Sprintf("%s-%s.%s", cr.ObjectMeta.Name, "cluster", cr.Namespace)
+	passwordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name, SecretKey: *cr.Spec.MongoDBSecurity.SecretRef.Key}
+	password := getMongoDBPassword(passwordParams)
+	mongoURL := fmt.Sprintf("mongodb://%s:%s@%s:27017/", cr.Spec.MongoDBSecurity.MongoDBAdminUser, password, serviceName)
+	mongoParams := mongogo.MongoDBParameters{
+		MongoURL:     mongoURL,
+		Namespace:    cr.Namespace,
+		Name:         cr.ObjectMeta.Name,
+		ClusterNodes: cr.Spec.MongoDBClusterSize,
+		SetupType:    "cluster",
+	}
+
+	err := mongogo.ScalingMongoClusterRS(mongoParams)
+	if err != nil {
+		logger.Error(err, "Unable to Scaling MongoDB cluster")
+		return err
+	}
+	logger.Info("Successfully Scaling MongoDB cluster")
+	return nil
+
 }

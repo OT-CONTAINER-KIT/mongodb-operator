@@ -1,0 +1,37 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongo-additional-config
+data:
+  mongo.yaml: |
+    net:
+      port: 27018
+      maxIncomingConnections: 10000
+    storage:
+      wiredTiger:
+        engineConfig:
+          journalCompressor: zlib  # 数据压缩算法，不可更改
+    replication:
+      enableMajorityReadConcern: true
+    operationProfiling:
+      mode: "off"
+      slowOpThresholdMs: 100
+    systemLog:
+      destination: file
+      path: /data/db/mongod.log
+      logAppend: true
+      logRotate: reopen
+      component:
+        command:
+          verbosity: 0
+        index:
+          verbosity: 0
+        query:
+          verbosity: 0
+        network:
+          verbosity: 0
+        write:
+          verbosity: 0
+    setParameter:
+      cursorTimeoutMillis: 700000

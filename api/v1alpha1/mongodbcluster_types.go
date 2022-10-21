@@ -41,6 +41,9 @@ type MongoDBPodDisruptionBudget struct {
 
 // MongoDBClusterStatus defines the observed state of MongoDBCluster
 type MongoDBClusterStatus struct {
+	State   string `json:"state"`
+	Message string `json:"message,omitempty"`
+	Version string `json:"version,omitempty"`
 }
 
 //+kubebuilder:object:root=true

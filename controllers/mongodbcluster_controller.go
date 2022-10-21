@@ -19,8 +19,11 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"mongodb-operator/k8sgo/status"
+	"mongodb-operator/k8sgo/type"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -28,12 +31,14 @@ import (
 
 	opstreelabsinv1alpha1 "mongodb-operator/api/v1alpha1"
 	"mongodb-operator/k8sgo"
+	types "mongodb-operator/k8sgo/type"
 )
 
 // MongoDBClusterReconciler reconciles a MongoDBCluster object
 type MongoDBClusterReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	log    *zap.SugaredLogger
 }
 
 //+kubebuilder:rbac:groups=opstreelabs.in,resources=mongodbclusters,verbs=get;list;watch;create;update;patch;delete
@@ -76,15 +81,44 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if err != nil {
 		return ctrl.Result{RequeueAfter: time.Second * 10}, err
 	}
-	if int(mongoDBSTS.Status.ReadyReplicas) != int(*instance.Spec.MongoDBClusterSize) {
-		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
+
+	if instance.Status.State == "" {
+		instance.Status.State = _type.Creating
+		return status.Update(r.Client.Status(), instance, statusOptions().
+			withMessage(Info, "Creating cluster").
+			withCreatingState(10),
+		)
 	}
+
+	if int(mongoDBSTS.Status.ReadyReplicas) != int(*instance.Spec.MongoDBClusterSize) {
+		return ctrl.Result{RequeueAfter: time.Second * 30}, nil
+	}
+
 	state, err := k8sgo.CheckMongoClusterStateInitialized(instance)
-	if err != nil || !state {
+	switch {
+	case state == types.Unhealthy:
 		err = k8sgo.InitializeMongoDBCluster(instance)
 		if err != nil {
 			return ctrl.Result{RequeueAfter: time.Second * 10}, err
 		}
+	case state == types.ConnectError:
+		return status.Update(r.Client.Status(), instance, statusOptions().
+			withMessage(Error, fmt.Sprintf("Error with connecting mongodb: %s", err)).
+			withCreatingState(5),
+		)
+	case state == types.Scaling:
+		if instance.Status.State != types.Scaling {
+			return status.Update(r.Client.Status(), instance, statusOptions().
+				withMessage(Info, "Scaling down").
+				withScalingState(10),
+			)
+		}
+		err := k8sgo.GetMongoDBParamsForScaling(instance)
+		if err != nil {
+			return ctrl.Result{RequeueAfter: time.Second * 10}, err
+		}
+	default:
+		r.log.Info("MongoDB Cluster is healthy")
 	}
 	if !k8sgo.CheckMongoDBClusterMonitoringUser(instance) {
 		err = k8sgo.CreateMongoDBClusterMonitoringUser(instance)
@@ -92,7 +126,11 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			return ctrl.Result{RequeueAfter: time.Second * 10}, err
 		}
 	}
-	return ctrl.Result{}, nil
+
+	return status.Update(r.Client.Status(), instance, statusOptions().
+		withMessage(Info, "done").
+		withRunningState(),
+	)
 }
 
 // SetupWithManager sets up the controller with the Manager.

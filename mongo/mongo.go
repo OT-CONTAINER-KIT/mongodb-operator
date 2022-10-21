@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"github.com/go-logr/logr"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	types "mongodb-operator/k8sgo/type"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"time"
 )
@@ -136,17 +138,25 @@ func InitiateMongoClusterRS(params MongoDBParameters) error {
 }
 
 // CheckMongoClusterInitialized is a method to check if cluster is initailized or not
-func CheckMongoClusterInitialized(params MongoDBParameters) (bool, error) {
+func CheckMongoClusterInitialized(params MongoDBParameters) (string, error) {
 	client := initiateMongoClient(params)
 	var result bson.M
 	err := client.Database(dbName).RunCommand(context.Background(), bson.D{{Key: "replSetGetStatus", Value: 1}}).Decode(&result)
 	if err != nil {
-		return false, err
+		return types.ConnectError, err
+	}
+	if result["members"] != "" {
+		members := result["members"].(primitive.A)
+		membersArray := []interface{}(members)
+		if int(*params.ClusterNodes) != len(membersArray) {
+			logf.Log.Info("do Scaling")
+			return types.Scaling, nil
+		}
 	}
 	if result["ok"] != 0 {
-		return true, nil
+		return types.Healthy, nil
 	}
-	return false, nil
+	return types.Unhealthy, nil
 }
 
 // GetMongoNodeInfo is a method to get info for MongoDB node
@@ -158,4 +168,25 @@ func GetMongoNodeInfo(params MongoDBParameters, count int) string {
 func logGenerator(name, namespace, resourceType string) logr.Logger {
 	reqLogger := log.WithValues("Namespace", namespace, "Name", name, "Resource Type", resourceType)
 	return reqLogger
+}
+
+func ScalingMongoClusterRS(params MongoDBParameters) error {
+	var mongoNodeInfo []bson.M
+	client := initiateMongoClient(params)
+	for node := 0; node < int(*params.ClusterNodes); node++ {
+		mongoNodeInfo = append(mongoNodeInfo, bson.M{"_id": node, "host": GetMongoNodeInfo(params, node)})
+	}
+	config := bson.M{
+		"_id":     params.Name,
+		"members": mongoNodeInfo,
+	}
+	response := client.Database(dbName).RunCommand(context.Background(), bson.M{"replSetReconfig": config})
+	if response.Err() != nil {
+		return response.Err()
+	}
+	err := discconnectMongoClient(client)
+	if err != nil {
+		return err
+	}
+	return nil
 }
