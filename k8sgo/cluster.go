@@ -63,7 +63,7 @@ func CreateMongoClusterMonitoringService(cr *opstreelabsinv1alpha1.MongoDBCluste
 // CreateMongoClusterSetup is a method to create cluster statefulset for MongoDB
 func CreateMongoClusterSetup(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
 	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "StatefulSet")
-	err := CreateOrUpdateStateFul(getMongoDBClusterParams(cr))
+	err := CreateOrUpdateStateFul(getMongoDBClusterParams(cr), cr)
 	if err != nil {
 		logger.Error(err, "Cannot create cluster StatefulSet for MongoDB")
 		return err

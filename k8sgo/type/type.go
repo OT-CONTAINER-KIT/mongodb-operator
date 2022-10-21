@@ -8,6 +8,7 @@ const (
 	Deleting     string = "Deleting"
 	Scaling      string = "Scaling"
 	ConnectError string = "ConnectError"
-	Healthy      string = "healthy"
-	Unhealthy    string = "unhealthy"
+	Healthy      string = "Healthy"
+	Unhealthy    string = "Unhealthy"
+	Expanding    string = "Expanding"
 )

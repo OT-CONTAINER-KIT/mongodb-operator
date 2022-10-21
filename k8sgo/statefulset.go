@@ -3,13 +3,16 @@ package k8sgo
 import (
 	"context"
 	"github.com/go-logr/logr"
+	"github.com/iamabhishek-dubey/k8s-objectmatcher/patch"
+	apiErrors "github.com/pkg/errors"
+	"go.uber.org/zap"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	resource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/iamabhishek-dubey/k8s-objectmatcher/patch"
-	appsv1 "k8s.io/api/apps/v1"
+	opstreelabsinv1alpha1 "mongodb-operator/api/v1alpha1"
+	types "mongodb-operator/k8sgo/type"
 )
 
 // statefulSetParameters is the input struct for MongoDB statefulset
@@ -44,7 +47,7 @@ type pvcParameters struct {
 }
 
 // CreateOrUpdateStateFul method will create or update StatefulSet
-func CreateOrUpdateStateFul(params statefulSetParameters) error {
+func CreateOrUpdateStateFul(params statefulSetParameters, cr *opstreelabsinv1alpha1.MongoDBCluster) error {
 	logger := logGenerator(params.StatefulSetMeta.Name, params.Namespace, "StatefulSet")
 	storedStateful, err := GetStateFulSet(params.Namespace, params.StatefulSetMeta.Name)
 	statefulSetDef := generateStatefulSetDef(params)
@@ -58,7 +61,35 @@ func CreateOrUpdateStateFul(params statefulSetParameters) error {
 		}
 		return err
 	}
+	// todo checkExpandPVC
+	oldStorage := storedStateful.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests.Storage()
+	newStorage := storedStateful.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests.Storage()
+	if canExpandPVC(*oldStorage, newStorage) {
+		if cr.Status.State != types.Expanding {
+			return apiErrors.Errorf("expanding")
+		}
+		zap.S().Info("canExpandPVC true")
+		// delete sts
+
+		// expand pvc
+
+		// ResourceVersion 设置为 ”“  否则报错
+
+		// build sts , recreate sts
+	}
+
 	return patchStateFulSet(storedStateful, statefulSetDef, params.Namespace)
+}
+
+func canExpandPVC(oldDataStorage resource.Quantity, newDataStorage *resource.Quantity) bool {
+	zap.S().Info("oldDataStorage: ", oldDataStorage, ",newDataStorage: ", newDataStorage)
+	dataChanged := true
+	if newDataStorage.Cmp(oldDataStorage) != 1 {
+		zap.S().Info("Can not expand, new pvc is not larger than old pvc")
+		dataChanged = false
+	}
+
+	return dataChanged
 }
 
 // patchStateFulSet will patch Statefulset
@@ -95,6 +126,10 @@ func patchStateFulSet(storedStateful *appsv1.StatefulSet, newStateful *appsv1.St
 	}
 	logger.Info("Reconciliation Complete, no Changes required.")
 	return nil
+}
+
+func checkExpandPVC() {
+
 }
 
 // createStateFulSet is a method to create statefulset in Kubernetes

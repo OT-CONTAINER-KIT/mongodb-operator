@@ -84,10 +84,15 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	if instance.Status.State == "" {
 		instance.Status.State = _type.Creating
-		return status.Update(r.Client.Status(), instance, statusOptions().
-			withMessage(Info, "Creating cluster").
-			withCreatingState(10),
-		)
+		err := r.Status().Update(ctx, instance)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{RequeueAfter: time.Second * 10}, err
+		/*		return status.Update(r.Client.Status(), instance, statusOptions().
+				withMessage(Info, "Creating cluster").
+				withCreatingState(10),
+			)*/
 	}
 
 	if int(mongoDBSTS.Status.ReadyReplicas) != int(*instance.Spec.MongoDBClusterSize) {
