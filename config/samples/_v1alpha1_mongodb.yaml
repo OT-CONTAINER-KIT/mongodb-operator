@@ -1,6 +1,0 @@
-apiVersion: opstreelabs.in/v1alpha1
-kind: MongoDB
-metadata:
-  name: mongodb-sample
-spec:
-  # Add fields here

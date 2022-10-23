@@ -51,7 +51,7 @@ func CreateMongoStandaloneService(cr *opstreelabsinv1alpha1.MongoDB) error {
 // CreateMongoStandaloneSetup is a method to create standalone statefulset for MongoDB
 func CreateMongoStandaloneSetup(cr *opstreelabsinv1alpha1.MongoDB) error {
 	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "StatefulSet")
-	err := CreateOrUpdateStateFul(getMongoDBStandaloneParams(cr))
+	err := CreateOrUpdateStateFul(getMongoDBStandaloneParams(cr), nil, cr)
 	if err != nil {
 		logger.Error(err, "Cannot create standalone StatefulSet for MongoDB")
 		return err

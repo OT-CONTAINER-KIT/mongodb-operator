@@ -10,6 +10,7 @@ type containerParameters struct {
 	Image                     string
 	ImagePullPolicy           corev1.PullPolicy
 	Resources                 *corev1.ResourceRequirements
+	Command                   []string
 	PersistenceEnabled        *bool
 	MongoReplicaSetName       *string
 	MongoSetupType            string
@@ -37,9 +38,14 @@ func generateContainerDef(name string, params containerParameters) []corev1.Cont
 			Image:           params.Image,
 			ImagePullPolicy: params.ImagePullPolicy,
 			VolumeMounts:    volumeMounts,
-			Env:             getEnvironmentVariables(params),
-			ReadinessProbe:  getMongoDBProbe(),
-			LivenessProbe:   getMongoDBProbe(),
+			Command: []string{
+				"mongod",
+				"-f",
+				"/etc/mongo.d/extra/external-config",
+			},
+			Env:            getEnvironmentVariables(params),
+			ReadinessProbe: getMongoDBProbe(),
+			LivenessProbe:  getMongoDBProbe(),
 		},
 	}
 	if params.Resources != nil {

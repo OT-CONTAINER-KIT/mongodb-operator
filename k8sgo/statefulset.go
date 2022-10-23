@@ -47,7 +47,7 @@ type pvcParameters struct {
 }
 
 // CreateOrUpdateStateFul method will create or update StatefulSet
-func CreateOrUpdateStateFul(params statefulSetParameters, cr *opstreelabsinv1alpha1.MongoDBCluster) error {
+func CreateOrUpdateStateFul(params statefulSetParameters, cluster *opstreelabsinv1alpha1.MongoDBCluster, standalone *opstreelabsinv1alpha1.MongoDB) error {
 	logger := logGenerator(params.StatefulSetMeta.Name, params.Namespace, "StatefulSet")
 	storedStateful, err := GetStateFulSet(params.Namespace, params.StatefulSetMeta.Name)
 	statefulSetDef := generateStatefulSetDef(params)
@@ -61,35 +61,33 @@ func CreateOrUpdateStateFul(params statefulSetParameters, cr *opstreelabsinv1alp
 		}
 		return err
 	}
-	// todo checkExpandPVC
+
 	oldStorage := storedStateful.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests.Storage()
-	newStorage := storedStateful.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests.Storage()
+	newStorage := statefulSetDef.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests.Storage()
 	if canExpandPVC(*oldStorage, newStorage) {
-		if cr.Status.State != types.Expanding {
+		if cluster.Status.State != types.Expanding {
 			return apiErrors.Errorf("expanding")
 		}
 		zap.S().Info("canExpandPVC true")
 		// delete sts
+		policy := metav1.DeletePropagationBackground
+		if err := generateK8sClient().AppsV1().StatefulSets(params.StatefulSetMeta.Name).Delete(context.TODO(), storedStateful.Name, metav1.DeleteOptions{PropagationPolicy: &policy}); err != nil {
+			return err
+		}
 
 		// expand pvc
-
-		// ResourceVersion 设置为 ”“  否则报错
+		if err := dealWithExpandingPVC(context.TODO(), *storedStateful); err != nil {
+			return err
+		}
 
 		// build sts , recreate sts
+		if err := createStateFulSet(params.Namespace, statefulSetDef); err != nil {
+			return err
+		}
+
 	}
 
 	return patchStateFulSet(storedStateful, statefulSetDef, params.Namespace)
-}
-
-func canExpandPVC(oldDataStorage resource.Quantity, newDataStorage *resource.Quantity) bool {
-	zap.S().Info("oldDataStorage: ", oldDataStorage, ",newDataStorage: ", newDataStorage)
-	dataChanged := true
-	if newDataStorage.Cmp(oldDataStorage) != 1 {
-		zap.S().Info("Can not expand, new pvc is not larger than old pvc")
-		dataChanged = false
-	}
-
-	return dataChanged
 }
 
 // patchStateFulSet will patch Statefulset
