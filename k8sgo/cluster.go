@@ -9,14 +9,14 @@ import (
 // CreateMongoClusterService is a method to create service for mongodb cluster
 func CreateMongoClusterService(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
 	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "Service")
-	appName := cr.ObjectMeta.Name
+	appName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "cluster")
 	labels := map[string]string{
 		"app":           appName,
 		"mongodb_setup": "cluster",
 		"role":          "cluster",
 	}
 	params := serviceParameters{
-		ServiceMeta:     generateObjectMetaInformation(fmt.Sprintf("%s-%s", appName, "service"), cr.Namespace, labels, generateAnnotations()),
+		ServiceMeta:     generateObjectMetaInformation(appName, cr.Namespace, labels, generateAnnotations()),
 		OwnerDef:        mongoClusterAsOwner(cr),
 		Namespace:       cr.Namespace,
 		Labels:          labels,
@@ -36,7 +36,7 @@ func CreateMongoClusterService(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
 // CreateMongoClusterMonitoringService is a method to create a monitoring service for mongodb cluster
 func CreateMongoClusterMonitoringService(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
 	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "Service")
-	appName := cr.ObjectMeta.Name
+	appName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "cluster")
 	labels := map[string]string{
 		"app":           appName,
 		"mongodb_setup": "cluster",
@@ -92,14 +92,14 @@ func CreateMongoClusterMonitoringSecret(cr *opstreelabsinv1alpha1.MongoDBCluster
 // getMongoDBClusterSecretParams is a method to create secret for MongoDB Monitoring
 func getMongoDBClusterSecretParams(cr *opstreelabsinv1alpha1.MongoDBCluster) secretsParameters {
 	password := randstr.String(16)
-	appName := cr.ObjectMeta.Name
+	appName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "cluster-monitoring")
 	labels := map[string]string{
 		"app":           appName,
 		"mongodb_setup": "cluster",
 		"role":          "cluster",
 	}
 	params := secretsParameters{
-		SecretsMeta: generateObjectMetaInformation(fmt.Sprintf("%s-%s", appName, "monitoring-secret"), cr.Namespace, labels, generateAnnotations()),
+		SecretsMeta: generateObjectMetaInformation(appName, cr.Namespace, labels, generateAnnotations()),
 		OwnerDef:    mongoClusterAsOwner(cr),
 		Namespace:   cr.Namespace,
 		Labels:      labels,
@@ -114,8 +114,8 @@ func getMongoDBClusterSecretParams(cr *opstreelabsinv1alpha1.MongoDBCluster) sec
 func getMongoDBClusterParams(cr *opstreelabsinv1alpha1.MongoDBCluster) statefulSetParameters {
 	trueProperty := true
 	falseProperty := false
-	appName := cr.ObjectMeta.Name
-	monitoringSecretName := fmt.Sprintf("%s-%s", appName, "monitoring-secret")
+	appName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "cluster")
+	monitoringSecretName := fmt.Sprintf("%s-%s", appName, "monitoring")
 	labels := map[string]string{
 		"app":           appName,
 		"mongodb_setup": "cluster",
@@ -186,14 +186,14 @@ func getMongoDBClusterParams(cr *opstreelabsinv1alpha1.MongoDBCluster) statefulS
 
 // getPodDisruptionParams is a method to create parameters for pod disruption budget
 func getPodDisruptionParams(cr *opstreelabsinv1alpha1.MongoDBCluster) PodDisruptionParameters {
-	appName := cr.ObjectMeta.Name
+	appName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "cluster")
 	labels := map[string]string{
 		"app":           appName,
 		"mongodb_setup": "cluster",
 		"role":          "cluster",
 	}
 	params := PodDisruptionParameters{
-		PDBMeta:        generateObjectMetaInformation(fmt.Sprintf("%s-%s", appName, "Pod-Disruption"), cr.Namespace, labels, generateAnnotations()),
+		PDBMeta:        generateObjectMetaInformation(appName, cr.Namespace, labels, generateAnnotations()),
 		OwnerDef:       mongoClusterAsOwner(cr),
 		Namespace:      cr.Namespace,
 		Labels:         labels,

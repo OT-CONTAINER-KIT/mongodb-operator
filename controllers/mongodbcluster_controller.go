@@ -58,7 +58,7 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if err := controllerutil.SetControllerReference(instance, instance, r.Scheme); err != nil {
 		return ctrl.Result{RequeueAfter: time.Second * 10}, err
 	}
-	if !k8sgo.CheckSecretExist(instance.Namespace, fmt.Sprintf("%s-%s", instance.ObjectMeta.Name, "monitoring-secret")) {
+	if !k8sgo.CheckSecretExist(instance.Namespace, fmt.Sprintf("%s-%s", instance.ObjectMeta.Name, "cluster-monitoring")) {
 		err = k8sgo.CreateMongoClusterMonitoringSecret(instance)
 		if err != nil {
 			return ctrl.Result{RequeueAfter: time.Second * 10}, err
@@ -108,7 +108,7 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if err != nil {
 		return ctrl.Result{RequeueAfter: time.Second * 10}, err
 	}
-	mongoDBSTS, err := k8sgo.GetStateFulSet(instance.Namespace, instance.ObjectMeta.Name)
+	mongoDBSTS, err := k8sgo.GetStateFulSet(instance.Namespace, fmt.Sprintf("%s-%s", instance.ObjectMeta.Name, "cluster"))
 	if err != nil {
 		return ctrl.Result{RequeueAfter: time.Second * 10}, err
 	}
