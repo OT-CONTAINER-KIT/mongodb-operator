@@ -58,7 +58,7 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if err := controllerutil.SetControllerReference(instance, instance, r.Scheme); err != nil {
 		return ctrl.Result{RequeueAfter: time.Second * 10}, err
 	}
-	if !k8sgo.CheckSecretExist(instance.Namespace, fmt.Sprintf("%s-%s", instance.ObjectMeta.Name, "cluster-monitoring")) {
+	if !k8sgo.CheckSecretExist(instance.Namespace, fmt.Sprintf("%s-%s", instance.ObjectMeta.Name, "monitoring-secret")) {
 		err = k8sgo.CreateMongoClusterMonitoringSecret(instance)
 		if err != nil {
 			return ctrl.Result{RequeueAfter: time.Second * 10}, err
@@ -108,22 +108,16 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if err != nil {
 		return ctrl.Result{RequeueAfter: time.Second * 10}, err
 	}
-	mongoDBSTS, err := k8sgo.GetStateFulSet(instance.Namespace, fmt.Sprintf("%s-%s", instance.ObjectMeta.Name, "cluster"))
+	mongoDBSTS, err := k8sgo.GetStateFulSet(instance.Namespace, instance.ObjectMeta.Name)
 	if err != nil {
 		return ctrl.Result{RequeueAfter: time.Second * 10}, err
 	}
 
 	if instance.Status.State == "" {
-		instance.Status.State = types.Creating
-		err := r.Client.Status().Update(ctx, instance)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{RequeueAfter: time.Second * 10}, err
-		/*		return status.Update(r.Client.Status(), instance, statusOptions().
-				withMessage(Info, "Creating cluster").
-				withCreatingState(10),
-			)*/
+		return status.Update(r.Client.Status(), instance, statusOptions().
+			withMessage(Info, "Creating cluster").
+			withCreatingState(10),
+		)
 	}
 
 	if int(mongoDBSTS.Status.ReadyReplicas) != int(*instance.Spec.MongoDBClusterSize) {

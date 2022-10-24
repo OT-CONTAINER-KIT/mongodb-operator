@@ -30,6 +30,9 @@ spec:
     image: bitnami/mongodb-exporter:0.11.2-debian-10-r382
     imagePullPolicy: IfNotPresent
   mongoDBAdditionalConfig: mongo-additional-config
+  security:
+    tls:
+      enabled: false
 ---
 apiVersion: v1
 kind: Secret

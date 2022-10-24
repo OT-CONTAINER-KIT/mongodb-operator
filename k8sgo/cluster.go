@@ -99,7 +99,7 @@ func getMongoDBClusterSecretParams(cr *opstreelabsinv1alpha1.MongoDBCluster) sec
 		"role":          "cluster",
 	}
 	params := secretsParameters{
-		SecretsMeta: generateObjectMetaInformation(fmt.Sprintf("%s-%s", appName, "monitoring"), cr.Namespace, labels, generateAnnotations()),
+		SecretsMeta: generateObjectMetaInformation(fmt.Sprintf("%s-%s", appName, "monitoring-secret"), cr.Namespace, labels, generateAnnotations()),
 		OwnerDef:    mongoClusterAsOwner(cr),
 		Namespace:   cr.Namespace,
 		Labels:      labels,

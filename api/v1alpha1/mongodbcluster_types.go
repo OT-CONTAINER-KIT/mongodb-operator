@@ -20,6 +20,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type Phase string
+
 // MongoDBClusterSpec defines the desired state of MongoDBCluster
 type MongoDBClusterSpec struct {
 	MongoDBClusterSize      *int32                      `json:"clusterSize"`
