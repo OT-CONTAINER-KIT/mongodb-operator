@@ -130,6 +130,10 @@ func (o *optionBuilder) withRunningState() *optionBuilder {
 	return o.withState(_type.Running, -1)
 }
 
+func (o *optionBuilder) withExpandingState(retryAfter int) *optionBuilder {
+	return o.withState(_type.Expanding, retryAfter)
+}
+
 type stateOption struct {
 	state      string
 	retryAfter int

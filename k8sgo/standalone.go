@@ -62,7 +62,7 @@ func CreateMongoStandaloneSetup(cr *opstreelabsinv1alpha1.MongoDB) error {
 // CreateMongoMonitoringSecret is a method to create secret for monitoring
 func CreateMongoMonitoringSecret(cr *opstreelabsinv1alpha1.MongoDB) error {
 	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "Secret")
-	err := CreateSecret(getMongoDBSecretParams(cr))
+	err := CreateSecret(getMongoDBSecretParams(cr), "password")
 	if err != nil {
 		logger.Error(err, "Cannot create mongodb monitoring secret")
 		return err
@@ -85,7 +85,7 @@ func getMongoDBSecretParams(cr *opstreelabsinv1alpha1.MongoDB) secretsParameters
 		Namespace:   cr.Namespace,
 		Labels:      labels,
 		Annotations: generateAnnotations(),
-		Password:    password,
+		Data:        password,
 		Name:        appName,
 	}
 	return params

@@ -23,7 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"mongodb-operator/k8sgo/status"
-	"mongodb-operator/k8sgo/type"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -65,8 +64,40 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			return ctrl.Result{RequeueAfter: time.Second * 10}, err
 		}
 	}
+
+	isValid, err := k8sgo.ValidateTLSConfig(instance)
+
+	if err != nil {
+		return status.Update(r.Client.Status(), instance,
+			statusOptions().
+				withMessage(Error, fmt.Sprintf("Error validating TLS config: %s", err)).
+				withFailedState(),
+		)
+	}
+
+	if !isValid {
+		return status.Update(r.Client.Status(), instance,
+			statusOptions().
+				withMessage(Info, "TLS config is not yet valid, retrying in 10 seconds").
+				withPendingState(10),
+		)
+	}
+	if err := k8sgo.EnsureTLSResources(instance); err != nil {
+		return status.Update(r.Client.Status(), instance,
+			statusOptions().
+				withMessage(Error, fmt.Sprintf("Error ensuring TLS resources: %s", err)).
+				withFailedState(),
+		)
+	}
+
 	err = k8sgo.CreateMongoClusterSetup(instance)
 	if err != nil {
+		if err.Error() == "Cannot create cluster StatefulSet for MongoDB,expanding" {
+			return status.Update(r.Client.Status(), instance, statusOptions().
+				withMessage(Info, "expanding pvc").
+				withExpandingState(5),
+			)
+		}
 		return ctrl.Result{RequeueAfter: time.Second * 10}, err
 	}
 	err = k8sgo.CreateMongoClusterMonitoringService(instance)
@@ -83,8 +114,8 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	if instance.Status.State == "" {
-		instance.Status.State = _type.Creating
-		err := r.Status().Update(ctx, instance)
+		instance.Status.State = types.Creating
+		err := r.Client.Status().Update(ctx, instance)
 		if err != nil {
 			return ctrl.Result{}, err
 		}

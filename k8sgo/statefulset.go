@@ -33,6 +33,7 @@ type statefulSetParameters struct {
 	PriorityClassName string
 	AdditionalConfig  *string
 	SecurityContext   *corev1.PodSecurityContext
+	TLS               bool
 }
 
 // pvcParameters is the structure for MongoDB PVC
@@ -200,6 +201,11 @@ func generateStatefulSetDef(params statefulSetParameters) *appsv1.StatefulSet {
 	if params.ImagePullSecret != nil {
 		statefulset.Spec.Template.Spec.ImagePullSecrets = []corev1.LocalObjectReference{{Name: *params.ImagePullSecret}}
 	}
+	if params.TLS {
+		statefulset.Spec.Template.Spec.Volumes = append(statefulset.Spec.Template.Spec.Volumes, getVolumeFromSecret(tlsCAVolumeName, params.StatefulSetMeta.Name+"-ca-certificate")...)
+		statefulset.Spec.Template.Spec.Volumes = append(statefulset.Spec.Template.Spec.Volumes, getVolumeFromSecret(tlsCertVolumeName, params.StatefulSetMeta.Name+"-server-certificate-key")...)
+	}
+
 	AddOwnerRefToObject(statefulset, params.OwnerDef)
 	return statefulset
 }

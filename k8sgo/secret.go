@@ -2,6 +2,7 @@ package k8sgo
 
 import (
 	"context"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -10,7 +11,7 @@ import (
 type secretsParameters struct {
 	Name        string
 	OwnerDef    metav1.OwnerReference
-	Password    string
+	Data        string
 	Namespace   string
 	Labels      map[string]string
 	Annotations map[string]string
@@ -20,8 +21,8 @@ type secretsParameters struct {
 }
 
 // CreateSecret is a method to create secret
-func CreateSecret(params secretsParameters) error {
-	secretDef := generateSecret(params)
+func CreateSecret(params secretsParameters, key string) error {
+	secretDef := generateSecret(params, key)
 	logger := logGenerator(params.Name, params.Namespace, "Secret")
 	_, err := generateK8sClient().CoreV1().Secrets(params.Namespace).Create(context.TODO(), secretDef, metav1.CreateOptions{})
 	if err != nil {
@@ -33,13 +34,13 @@ func CreateSecret(params secretsParameters) error {
 }
 
 // generateSecret is a method that will generate a secret interface
-func generateSecret(params secretsParameters) *corev1.Secret {
-	password := []byte(params.Password)
+func generateSecret(params secretsParameters, key string) *corev1.Secret {
+	data := []byte(params.Data)
 	secret := &corev1.Secret{
 		TypeMeta:   generateMetaInformation("Secret", "v1"),
 		ObjectMeta: params.SecretsMeta,
 		Data: map[string][]byte{
-			"password": password,
+			key: data,
 		},
 	}
 	AddOwnerRefToObject(secret, params.OwnerDef)
@@ -65,4 +66,29 @@ func CheckSecretExist(namespace string, secret string) bool {
 		return false
 	}
 	return true
+}
+
+// ReadStringData reads the StringData field of the secret with the given objectKey
+func ReadStringData(namespace string, secretName string) (map[string]string, error) {
+	secret, err := generateK8sClient().CoreV1().Secrets(namespace).Get(context.TODO(), secretName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return dataToStringData(secret.Data), nil
+}
+
+func dataToStringData(data map[string][]byte) map[string]string {
+	stringData := make(map[string]string)
+	for k, v := range data {
+		stringData[k] = string(v)
+	}
+	return stringData
+}
+
+func ReadKey(secretName string, key string, data map[string]string) (string, error) {
+	if val, ok := data[key]; ok {
+		return val, nil
+	}
+	return "", errors.Errorf(`key "%s" not present in the Secret %s`, key, secretName)
 }

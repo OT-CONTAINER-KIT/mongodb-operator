@@ -24,11 +24,12 @@ type containerParameters struct {
 	MonitoringResources       *corev1.ResourceRequirements
 	ExtraVolumeMount          *corev1.VolumeMount
 	AdditonalConfig           *string
+	TLS                       bool
 }
 
 // generateContainerDef is to generate container definition for MongoDB
 func generateContainerDef(name string, params containerParameters) []corev1.Container {
-	volumeMounts := getVolumeMount(name, params.PersistenceEnabled, params.AdditonalConfig)
+	volumeMounts := getVolumeMount(name, params.PersistenceEnabled, params.AdditonalConfig, params.TLS)
 	if params.ExtraVolumeMount != nil {
 		volumeMounts = append(volumeMounts, *params.ExtraVolumeMount)
 	}
@@ -58,7 +59,7 @@ func generateContainerDef(name string, params containerParameters) []corev1.Cont
 }
 
 // getVolumeMount is a method to create volume mounting list
-func getVolumeMount(name string, persistenceEnabled *bool, additionalConfig *string) []corev1.VolumeMount {
+func getVolumeMount(name string, persistenceEnabled *bool, additionalConfig *string, tls bool) []corev1.VolumeMount {
 	var volumeMounts []corev1.VolumeMount
 	if persistenceEnabled != nil && *persistenceEnabled {
 		volumeMounts = []corev1.VolumeMount{
@@ -75,6 +76,20 @@ func getVolumeMount(name string, persistenceEnabled *bool, additionalConfig *str
 			MountPath: "/etc/mongo.d/extra",
 		})
 	}
+
+	if tls {
+		// mount ca volume
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      tlsCAVolumeName,
+			MountPath: tlsCAMountPath,
+		})
+		// mount crt volume
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      tlsCertVolumeName,
+			MountPath: tlsOperatorSecretMountPath,
+		})
+	}
+
 	return volumeMounts
 }
 

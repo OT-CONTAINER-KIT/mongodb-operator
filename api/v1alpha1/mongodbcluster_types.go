@@ -30,6 +30,43 @@ type MongoDBClusterSpec struct {
 	MongoDBMonitoring       *MongoDBMonitoring          `json:"mongoDBMonitoring,omitempty"`
 	PodDisruptionBudget     *MongoDBPodDisruptionBudget `json:"podDisruptionBudget,omitempty"`
 	MongoDBAdditionalConfig *string                     `json:"mongoDBAdditionalConfig,omitempty"`
+	Security                Security                    `json:"security"`
+}
+
+type Security struct {
+	TLS TLS `json:"tls"`
+}
+
+// TLS is the configuration used to set up TLS encryption
+type TLS struct {
+	Enabled bool `json:"enabled"`
+
+	// Optional configures if TLS should be required or optional for connections
+	// +optional
+	Optional bool `json:"optional,omitempty"`
+
+	// CertificateKeySecret is a reference to a Secret containing a private key and certificate to use for TLS.
+	// The key and cert are expected to be PEM encoded and available at "tls.key" and "tls.crt".
+	// This is the same format used for the standard "kubernetes.io/tls" Secret type, but no specific type is required.
+	// Alternatively, an entry tls.pem, containing the concatenation of cert and key, can be provided.
+	// If all of tls.pem, tls.crt and tls.key are present, the tls.pem one needs to be equal to the concatenation of tls.crt and tls.key
+	// +optional
+	CertificateKeySecret LocalObjectReference `json:"certificateKeySecretRef,omitempty"`
+
+	// CaCertificateSecret is a reference to a Secret containing the certificate for the CA which signed the server certificates
+	// The certificate is expected to be available under the key "ca.crt"
+	// +optional
+	CaCertificateSecret *LocalObjectReference `json:"caCertificateSecretRef,omitempty"`
+
+	// CaConfigMap is a reference to a ConfigMap containing the certificate for the CA which signed the server certificates
+	// The certificate is expected to be available under the key "ca.crt"
+	// This field is ignored when CaCertificateSecretRef is configured
+	// +optional
+	CaConfigMap *LocalObjectReference `json:"caConfigMapRef,omitempty"`
+}
+
+type LocalObjectReference struct {
+	Name string `json:"name"`
 }
 
 // MongoDBPodDisruptionBudget defines the struct for MongoDB cluster
