@@ -6,17 +6,22 @@ metadata:
 data:
   mongo.yaml: |
     net:
-      port: 27018
+      port: 27017
       maxIncomingConnections: 10000
     storage:
       wiredTiger:
         engineConfig:
           journalCompressor: zlib  # 数据压缩算法，不可更改
     replication:
+      replSetName: foobar
       enableMajorityReadConcern: true
     operationProfiling:
       mode: "off"
       slowOpThresholdMs: 100
+    security:
+      keyFile: /mongo-key/mongo-keyfile
+    storage:
+      dbPath: /data/db
     systemLog:
       destination: file
       path: /data/db/mongod.log

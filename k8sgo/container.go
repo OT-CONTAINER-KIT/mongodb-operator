@@ -42,7 +42,7 @@ func generateContainerDef(name string, params containerParameters) []corev1.Cont
 			Command: []string{
 				"mongod",
 				"-f",
-				"/etc/mongo.d/extra/external-config",
+				"/etc/mongo.d/extra/mongo.yaml",
 			},
 			Env:            getEnvironmentVariables(params),
 			ReadinessProbe: getMongoDBProbe(),
