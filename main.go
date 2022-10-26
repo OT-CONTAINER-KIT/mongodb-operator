@@ -85,10 +85,8 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "MongoDB")
 		os.Exit(1)
 	}
-	if err = (&controllers.MongoDBClusterReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
+
+	if err = controllers.NewReconciler(mgr).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MongoDBCluster")
 		os.Exit(1)
 	}

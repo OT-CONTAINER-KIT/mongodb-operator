@@ -19,12 +19,17 @@ package controllers
 import (
 	"context"
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"mongodb-operator/controllers/watch"
 	"mongodb-operator/k8sgo/status"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 	"time"
 
 	opstreelabsinv1alpha1 "mongodb-operator/api/v1alpha1"
@@ -37,6 +42,20 @@ type MongoDBClusterReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 	//log    *zap.SugaredLogger
+	secretWatcher    *watch.ResourceWatcher
+	configMapWatcher *watch.ResourceWatcher
+}
+
+func NewReconciler(mgr manager.Manager) *MongoDBClusterReconciler {
+	secretWatcher := watch.New()
+	configMapWatcher := watch.New()
+
+	return &MongoDBClusterReconciler{
+		Client:           mgr.GetClient(),
+		Scheme:           mgr.GetScheme(),
+		secretWatcher:    &secretWatcher,
+		configMapWatcher: &configMapWatcher,
+	}
 }
 
 //+kubebuilder:rbac:groups=opstreelabs.in,resources=mongodbclusters,verbs=get;list;watch;create;update;patch;delete
@@ -154,6 +173,9 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 // SetupWithManager sets up the controller with the Manager.
 func (r *MongoDBClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		WithOptions(controller.Options{MaxConcurrentReconciles: 3}).
 		For(&opstreelabsinv1alpha1.MongoDBCluster{}).
+		Watches(&source.Kind{Type: &corev1.Secret{}}, r.secretWatcher).
+		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, r.configMapWatcher).
 		Complete(r)
 }
