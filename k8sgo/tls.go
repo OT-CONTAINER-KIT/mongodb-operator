@@ -26,14 +26,14 @@ func ValidateTLSConfig(instance *opstreelabsinv1alpha1.MongoDBCluster) (bool, er
 		return true, nil
 	}
 
-	log.Info("Ensuring TLS is correctly configured")
+	Log.Info("Ensuring TLS is correctly configured")
 
 	// Ensure CA cert is configured
 	_, err := getCaCrt(instance)
 
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
-			log.Error(err, "CA resource not found")
+			Log.Error(err, "CA resource not found")
 			return false, nil
 		}
 
@@ -44,7 +44,7 @@ func ValidateTLSConfig(instance *opstreelabsinv1alpha1.MongoDBCluster) (bool, er
 	_, err = ReadStringData(instance.Namespace, instance.Spec.Security.TLS.CertificateKeySecret.Name)
 	if err != nil {
 		if apiErrors.IsNotFound(err) {
-			log.Error(err, "CertificateKeySecret not found")
+			Log.Error(err, "CertificateKeySecret not found")
 			return false, nil
 		}
 
@@ -58,7 +58,7 @@ func ValidateTLSConfig(instance *opstreelabsinv1alpha1.MongoDBCluster) (bool, er
 		return false, err
 	}
 
-	log.Info("Successfully validated TLS config")
+	Log.Info("Successfully validated TLS config")
 
 	return true, nil
 }
@@ -145,12 +145,12 @@ func EnsureTLSResources(instance *opstreelabsinv1alpha1.MongoDBCluster) error {
 	// the TLS secret needs to be created beforehand, as both the StatefulSet and AutomationConfig
 	// require the contents.
 
-	log.Info("TLS is enabled, creating/updating CA secret")
+	Log.Info("TLS is enabled, creating/updating CA secret")
 	if err := ensureCASecret(instance); err != nil {
 		return errors.Errorf("could not ensure CA secret: %s", err)
 	}
 
-	log.Info("TLS is enabled, creating/updating TLS secret")
+	Log.Info("TLS is enabled, creating/updating TLS secret")
 	if err := ensureTLSSecret(instance); err != nil {
 		return errors.Errorf("could not ensure TLS secret: %s", err)
 	}

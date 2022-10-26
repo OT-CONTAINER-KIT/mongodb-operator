@@ -5,7 +5,7 @@ metadata:
 spec:
   clusterSize: 3
   kubernetesConfig:
-    image: quay.io/opstree/mongo:v5.0
+    image: docker.io/radondb/ot-mongodb:v5.0
     imagePullPolicy: IfNotPresent
     resources:
       requests:
@@ -18,7 +18,7 @@ spec:
       fsGroup: 1001
   storage:
     accessModes: ["ReadWriteOnce"]
-    storageSize: 20Gi
+    storageSize: 50Gi
 #    storageClass: csi-cephfs-sc
   mongoDBSecurity:
     mongoDBAdminUser: admin
@@ -41,3 +41,51 @@ metadata:
 type: Opaque
 stringData:
   password: admin_pwd
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongo-additional-config
+data:
+  mongo.yaml: |
+    net:
+      bindIpAll: true
+      port: 27017
+      maxIncomingConnections: 10000
+    storage:
+      wiredTiger:
+        engineConfig:
+          journalCompressor: zlib  # 数据压缩算法，不可更改
+    replication:
+      replSetName: mongodb
+      enableMajorityReadConcern: true
+    operationProfiling:
+      mode: "off"
+      slowOpThresholdMs: 100
+    security:
+      keyFile: /mongo-key/mongo-keyfile
+    storage:
+      dbPath: /data/db
+    processManagement:
+      pidFilePath: /tmp/mongod.pid
+    systemLog:
+      destination: file
+      path: /data/db/mongod.log
+      logAppend: true
+      logRotate: reopen
+      component:
+        command:
+          verbosity: 0
+        index:
+          verbosity: 0
+        query:
+          verbosity: 0
+        network:
+          verbosity: 0
+        write:
+          verbosity: 0
+    setParameter:
+      cursorTimeoutMillis: 700000
+
+

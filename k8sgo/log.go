@@ -4,4 +4,4 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-var log = logf.Log.WithName("controller_mongo")
+var Log = logf.Log.WithName("controller_mongo")

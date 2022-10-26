@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"github.com/go-logr/logr"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	types "mongodb-operator/k8sgo/type"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"time"
 )
@@ -29,6 +27,7 @@ type MongoDBParameters struct {
 	Password     string
 	UserName     *string
 	ClusterNodes *int32
+	Version      int
 }
 
 // initiateMongoClient is a method to create client connection with MongoDB
@@ -69,18 +68,8 @@ func discconnectMongoClient(client *mongo.Client) error {
 // CreateMonitoringUser is a method to create monitoring user inside MongoDB
 func CreateMonitoringUser(params MongoDBParameters) error {
 	var client *mongo.Client
-	if params.SetupType == "cluster" {
-		client = initiateMongoClusterClient(params)
-	} else {
-		client = initiateMongoClient(params)
-	}
-	response := client.Database(dbName).RunCommand(context.Background(), bson.D{
-		{"createUser", monitoringUser}, {"pwd", params.Password},
-		{"roles", []bson.M{{"role": "clusterMonitor", "db": "admin"}, {"role": "read", "db": "local"}}}},
-	)
-	if response.Err() != nil {
-		return response.Err()
-	}
+	client = initiateMongoClusterClient(params)
+
 	err := discconnectMongoClient(client)
 	if err != nil {
 		return err
@@ -90,29 +79,36 @@ func CreateMonitoringUser(params MongoDBParameters) error {
 
 //nolint:govet
 // GetMongoDBUser is a method to check if user exists in MongoDB
-func GetMongoDBUser(params MongoDBParameters) (bool, error) {
+func GetOrCreateMonitoringUser(params MongoDBParameters) error {
 	var client *mongo.Client
-	if params.SetupType == "cluster" {
-		client = initiateMongoClusterClient(params)
-	} else {
-		client = initiateMongoClient(params)
-	}
+	client = initiateMongoClusterClient(params)
 	collection := client.Database("admin").Collection("system.users")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	opts := options.Count().SetMaxTime(2 * time.Second)
+	opts := options.Count().SetMaxTime(10 * time.Second)
 	docsCount, err := collection.CountDocuments(ctx, bson.D{{"user", *params.UserName}}, opts)
 	if err != nil {
-		return false, err
+		return err
 	}
+
+	if docsCount > 0 {
+		return nil
+	}
+
+	response := client.Database(dbName).RunCommand(context.Background(), bson.D{
+		{"createUser", monitoringUser}, {"pwd", params.Password},
+		{"roles", []bson.M{{"role": "clusterMonitor", "db": "admin"}, {"role": "read", "db": "local"}}}},
+	)
+
+	if response.Err() != nil {
+		return response.Err()
+	}
+
 	err = discconnectMongoClient(client)
 	if err != nil {
-		return false, err
+		return err
 	}
-	if docsCount > 0 {
-		return true, nil
-	}
-	return false, nil
+	return nil
 }
 
 // InitiateMongoClusterRS is a method to create MongoDB cluster
@@ -137,26 +133,42 @@ func InitiateMongoClusterRS(params MongoDBParameters) error {
 	return nil
 }
 
-// CheckMongoClusterInitialized is a method to check if cluster is initailized or not
-func CheckMongoClusterInitialized(params MongoDBParameters) (string, error) {
+// CheckReplSetGetStatus is a method to check if cluster is initailized or not
+func CheckReplSetGetStatus(params MongoDBParameters) (error, bson.M) {
 	client := initiateMongoClient(params)
 	var result bson.M
 	err := client.Database(dbName).RunCommand(context.Background(), bson.D{{Key: "replSetGetStatus", Value: 1}}).Decode(&result)
 	if err != nil {
-		return types.ConnectError, err
-	}
-	if result["members"] != "" {
-		members := result["members"].(primitive.A)
-		membersArray := []interface{}(members)
-		if int(*params.ClusterNodes) != len(membersArray) {
-			logf.Log.Info("do Scaling")
-			return types.Scaling, nil
+		if err.Error() != "(NotYetInitialized) no replset config has been received" {
+			return err, result
 		}
 	}
-	if result["ok"] != 0 {
-		return types.Healthy, nil
+
+	if result != nil && result["ok"] != 0 {
+		return nil, result
 	}
-	return types.Unhealthy, nil
+
+	// if not ok , exec initializing
+	var mongoNodeInfo []bson.M
+	for node := 0; node < int(*params.ClusterNodes); node++ {
+		mongoNodeInfo = append(mongoNodeInfo, bson.M{"_id": node, "host": GetMongoNodeInfo(params, node)})
+	}
+	config := bson.M{
+		"_id":     params.Name,
+		"members": mongoNodeInfo,
+	}
+	response := client.Database(dbName).RunCommand(context.Background(), bson.M{"replSetInitiate": config})
+	if response.Err() != nil {
+		return response.Err(), result
+	}
+
+	defer func() {
+		if err := client.Disconnect(context.Background()); err != nil {
+			return
+		}
+	}()
+
+	return CheckReplSetGetStatus(params)
 }
 
 // GetMongoNodeInfo is a method to get info for MongoDB node
@@ -172,12 +184,13 @@ func logGenerator(name, namespace, resourceType string) logr.Logger {
 
 func ScalingMongoClusterRS(params MongoDBParameters) error {
 	var mongoNodeInfo []bson.M
-	client := initiateMongoClient(params)
+	client := initiateMongoClusterClient(params)
 	for node := 0; node < int(*params.ClusterNodes); node++ {
 		mongoNodeInfo = append(mongoNodeInfo, bson.M{"_id": node, "host": GetMongoNodeInfo(params, node)})
 	}
 	config := bson.M{
 		"_id":     params.Name,
+		"version": params.Version,
 		"members": mongoNodeInfo,
 	}
 	response := client.Database(dbName).RunCommand(context.Background(), bson.M{"replSetReconfig": config})

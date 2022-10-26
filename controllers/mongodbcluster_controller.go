@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"mongodb-operator/k8sgo/status"
@@ -37,7 +36,7 @@ import (
 type MongoDBClusterReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
-	log    *zap.SugaredLogger
+	//log    *zap.SugaredLogger
 }
 
 //+kubebuilder:rbac:groups=opstreelabs.in,resources=mongodbclusters,verbs=get;list;watch;create;update;patch;delete
@@ -92,7 +91,7 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	err = k8sgo.CreateMongoClusterSetup(instance)
 	if err != nil {
-		if err.Error() == "Cannot create cluster StatefulSet for MongoDB,expanding" {
+		if err.Error() == "expanding" {
 			return status.Update(r.Client.Status(), instance, statusOptions().
 				withMessage(Info, "expanding pvc").
 				withExpandingState(5),
@@ -121,40 +120,29 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	if int(mongoDBSTS.Status.ReadyReplicas) != int(*instance.Spec.MongoDBClusterSize) {
-		return ctrl.Result{RequeueAfter: time.Second * 30}, nil
-	}
-
-	state, err := k8sgo.CheckMongoClusterStateInitialized(instance)
-	switch {
-	case state == types.Unhealthy:
-		err = k8sgo.InitializeMongoDBCluster(instance)
-		if err != nil {
-			return ctrl.Result{RequeueAfter: time.Second * 10}, err
-		}
-	case state == types.ConnectError:
-		return status.Update(r.Client.Status(), instance, statusOptions().
-			withMessage(Error, fmt.Sprintf("Error with connecting mongodb: %s", err)).
-			withCreatingState(5),
-		)
-	case state == types.Scaling:
-		if instance.Status.State != types.Scaling {
+		if instance.Status.State != types.Pending && instance.Status.State != types.Creating {
 			return status.Update(r.Client.Status(), instance, statusOptions().
-				withMessage(Info, "Scaling down").
-				withScalingState(10),
+				withMessage(Info, "Updating cluster").
+				withPendingState(10),
 			)
 		}
-		err := k8sgo.GetMongoDBParamsForScaling(instance)
-		if err != nil {
-			return ctrl.Result{RequeueAfter: time.Second * 10}, err
-		}
-	default:
-		r.log.Info("MongoDB Cluster is healthy")
+		return ctrl.Result{RequeueAfter: time.Second * 10}, nil
 	}
-	if !k8sgo.CheckMongoDBClusterMonitoringUser(instance) {
-		err = k8sgo.CreateMongoDBClusterMonitoringUser(instance)
-		if err != nil {
-			return ctrl.Result{RequeueAfter: time.Second * 10}, err
-		}
+
+	if err := k8sgo.CheckMongoClusterState(instance); err != nil {
+		return status.Update(r.Client.Status(), instance, statusOptions().
+			withMessage(Warn, fmt.Sprintf("Error with connecting mongodb: %s", err)).
+			withPendingState(5),
+		)
+	}
+
+	k8sgo.Log.Info("MongoDB Cluster is healthy")
+
+	if err := k8sgo.CheckMongoDBClusterMonitoringUser(instance); err != nil {
+		return status.Update(r.Client.Status(), instance, statusOptions().
+			withMessage(Warn, fmt.Sprintf("Error with checking monitor user in mongodb: %s", err)).
+			withPendingState(5),
+		)
 	}
 
 	return status.Update(r.Client.Status(), instance, statusOptions().

@@ -39,14 +39,9 @@ func generateContainerDef(name string, params containerParameters) []corev1.Cont
 			Image:           params.Image,
 			ImagePullPolicy: params.ImagePullPolicy,
 			VolumeMounts:    volumeMounts,
-			Command: []string{
-				"mongod",
-				"-f",
-				"/etc/mongo.d/extra/mongo.yaml",
-			},
-			Env:            getEnvironmentVariables(params),
-			ReadinessProbe: getMongoDBProbe(),
-			LivenessProbe:  getMongoDBProbe(),
+			Env:             getEnvironmentVariables(params),
+			ReadinessProbe:  getMongoDBProbe(),
+			LivenessProbe:   getMongoDBProbe(),
 		},
 	}
 	if params.Resources != nil {
@@ -116,6 +111,10 @@ func getEnvironmentVariables(params containerParameters) []corev1.EnvVar {
 			{
 				Name:  "MONGO_MODE",
 				Value: params.MongoSetupType,
+			},
+			{
+				Name:  "MONGO_CONF",
+				Value: "/etc/mongo.d/extra/mongo.yaml",
 			},
 		}
 	}

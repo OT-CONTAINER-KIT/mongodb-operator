@@ -2,69 +2,61 @@ package k8sgo
 
 import (
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	opstreelabsinv1alpha1 "mongodb-operator/api/v1alpha1"
 	"mongodb-operator/mongo"
 	"strings"
 )
 
-// InitializeMongoDBCluster is a method to create a mongodb cluster
-func InitializeMongoDBCluster(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
-	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "MongoDB Cluster Setup")
-	serviceName := fmt.Sprintf("%s-%s.%s", cr.ObjectMeta.Name, "cluster", cr.Namespace)
-	passwordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name, SecretKey: *cr.Spec.MongoDBSecurity.SecretRef.Key}
+// CheckMongoClusterState is a method to check mongodb cluster state
+func CheckMongoClusterState(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
+	logger := logGenerator(cr.Name, cr.Namespace, "MongoDB Cluster Setup")
+	serviceName := fmt.Sprintf("%s-%s.%s", cr.Name, "cluster", cr.Namespace)
+	passwordParams := secretsParameters{Name: cr.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name, SecretKey: *cr.Spec.MongoDBSecurity.SecretRef.Key}
 	password := getMongoDBPassword(passwordParams)
 	mongoURL := fmt.Sprintf("mongodb://%s:%s@%s:27017/", cr.Spec.MongoDBSecurity.MongoDBAdminUser, password, serviceName)
 	mongoParams := mongogo.MongoDBParameters{
 		MongoURL:     mongoURL,
 		Namespace:    cr.Namespace,
-		Name:         cr.ObjectMeta.Name,
+		Name:         cr.Name,
 		ClusterNodes: cr.Spec.MongoDBClusterSize,
 		SetupType:    "cluster",
 	}
-	err := mongogo.InitiateMongoClusterRS(mongoParams)
+	err, result := mongogo.CheckReplSetGetStatus(mongoParams)
 	if err != nil {
-		logger.Error(err, "Unable to create MongoDB cluster")
 		return err
 	}
-	logger.Info("Successfully created the MongoDB cluster")
-	return nil
-}
 
-// CheckMongoClusterStateInitialized is a method to check mongodb cluster state
-func CheckMongoClusterStateInitialized(cr *opstreelabsinv1alpha1.MongoDBCluster) (string, error) {
-	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "MongoDB Cluster Setup")
-	serviceName := fmt.Sprintf("%s-%s.%s", cr.ObjectMeta.Name, "cluster", cr.Namespace)
-	passwordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name, SecretKey: *cr.Spec.MongoDBSecurity.SecretRef.Key}
-	password := getMongoDBPassword(passwordParams)
-	mongoURL := fmt.Sprintf("mongodb://%s:%s@%s:27017/", cr.Spec.MongoDBSecurity.MongoDBAdminUser, password, serviceName)
-	mongoParams := mongogo.MongoDBParameters{
-		MongoURL:     mongoURL,
-		Namespace:    cr.Namespace,
-		Name:         cr.ObjectMeta.Name,
-		ClusterNodes: cr.Spec.MongoDBClusterSize,
-		SetupType:    "cluster",
+	if result != nil || result["members"] != "" {
+		members := result["members"].(primitive.A)
+		membersArray := []interface{}(members)
+		if int(*mongoParams.ClusterNodes) != len(membersArray) {
+			var version int
+			version = result["term"].(int)
+			err := GetMongoDBParamsForScaling(mongoParams, len(membersArray), version)
+			if err != nil {
+				return err
+			}
+		}
 	}
-	state, err := mongogo.CheckMongoClusterInitialized(mongoParams)
-	if err != nil {
-		return state, err
-	}
+
 	logger.Info("Successfully checked the MongoDB cluster state")
-	return state, nil
+	return nil
 }
 
 // CreateMongoDBMonitoringUser is a method to create a monitoring user for MongoDB
 func CreateMongoDBMonitoringUser(cr *opstreelabsinv1alpha1.MongoDB) error {
-	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "MongoDB Monitoring User")
-	serviceName := fmt.Sprintf("%s-%s.%s", cr.ObjectMeta.Name, "standalone", cr.Namespace)
-	passwordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name, SecretKey: *cr.Spec.MongoDBSecurity.SecretRef.Key}
+	logger := logGenerator(cr.Name, cr.Namespace, "MongoDB Monitoring User")
+	serviceName := fmt.Sprintf("%s-%s.%s", cr.Name, "standalone", cr.Namespace)
+	passwordParams := secretsParameters{Name: cr.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name, SecretKey: *cr.Spec.MongoDBSecurity.SecretRef.Key}
 	password := getMongoDBPassword(passwordParams)
-	monitoringPasswordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "standalone-monitoring"), SecretKey: "password"}
+	monitoringPasswordParams := secretsParameters{Name: cr.Name, Namespace: cr.Namespace, SecretName: fmt.Sprintf("%s-%s", cr.Name, "standalone-monitoring"), SecretKey: "password"}
 	monitoringPassword := getMongoDBPassword(monitoringPasswordParams)
 	mongoURL := fmt.Sprintf("mongodb://%s:%s@%s:27017/", cr.Spec.MongoDBSecurity.MongoDBAdminUser, password, serviceName)
 	mongoParams := mongogo.MongoDBParameters{
 		MongoURL:  mongoURL,
 		Namespace: cr.Namespace,
-		Name:      cr.ObjectMeta.Name,
+		Name:      cr.Name,
 		Password:  monitoringPassword,
 		SetupType: "standalone",
 	}
@@ -79,14 +71,14 @@ func CreateMongoDBMonitoringUser(cr *opstreelabsinv1alpha1.MongoDB) error {
 
 // CreateMongoDBClusterMonitoringUser is a method to create a monitoring user for MongoDB
 func CreateMongoDBClusterMonitoringUser(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
-	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "MongoDB Monitoring User")
-	passwordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name, SecretKey: *cr.Spec.MongoDBSecurity.SecretRef.Key}
+	logger := logGenerator(cr.Name, cr.Namespace, "MongoDB Monitoring User")
+	passwordParams := secretsParameters{Name: cr.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name, SecretKey: *cr.Spec.MongoDBSecurity.SecretRef.Key}
 	password := getMongoDBPassword(passwordParams)
-	monitoringPasswordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "cluster-monitoring"), SecretKey: "password"}
+	monitoringPasswordParams := secretsParameters{Name: cr.Name, Namespace: cr.Namespace, SecretName: fmt.Sprintf("%s-%s", cr.Name, "cluster-monitoring"), SecretKey: "password"}
 	monitoringPassword := getMongoDBPassword(monitoringPasswordParams)
 	mongoParams := mongogo.MongoDBParameters{
 		Namespace: cr.Namespace,
-		Name:      cr.ObjectMeta.Name,
+		Name:      cr.Name,
 		Password:  monitoringPassword,
 		SetupType: "cluster",
 	}
@@ -98,7 +90,7 @@ func CreateMongoDBClusterMonitoringUser(cr *opstreelabsinv1alpha1.MongoDBCluster
 			mongoURL = append(mongoURL, mongogo.GetMongoNodeInfo(mongoParams, node))
 		}
 	}
-	mongoURL = append(mongoURL, fmt.Sprintf("/?replicaSet=%s", cr.ObjectMeta.Name))
+	mongoURL = append(mongoURL, fmt.Sprintf("/?replicaSet=%s", cr.Name))
 	mongoParams.MongoURL = strings.Join(mongoURL, "")
 	err := mongogo.CreateMonitoringUser(mongoParams)
 	if err != nil {
@@ -110,16 +102,20 @@ func CreateMongoDBClusterMonitoringUser(cr *opstreelabsinv1alpha1.MongoDBCluster
 }
 
 // CheckMongoDBClusterMonitoringUser is a method to check if monitoring user exists in MongoDB
-func CheckMongoDBClusterMonitoringUser(cr *opstreelabsinv1alpha1.MongoDBCluster) bool {
-	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "MongoDB Monitoring User")
-	passwordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name, SecretKey: *cr.Spec.MongoDBSecurity.SecretRef.Key}
+func CheckMongoDBClusterMonitoringUser(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
+	logger := logGenerator(cr.Name, cr.Namespace, "MongoDB Monitoring User")
+	passwordParams := secretsParameters{Name: cr.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name, SecretKey: *cr.Spec.MongoDBSecurity.SecretRef.Key}
 	password := getMongoDBPassword(passwordParams)
+	monitorSecretName := fmt.Sprintf("%s-cluster-monitoring", cr.ObjectMeta.Name)
+	monitoringPassParams := secretsParameters{Name: cr.Name, Namespace: cr.Namespace, SecretName: monitorSecretName, SecretKey: "password"}
 	monitoringUser := "monitoring"
+	monitoringPass := getMongoDBPassword(monitoringPassParams)
 	mongoParams := mongogo.MongoDBParameters{
 		Namespace: cr.Namespace,
-		Name:      cr.ObjectMeta.Name,
+		Name:      cr.Name,
 		UserName:  &monitoringUser,
 		SetupType: "cluster",
+		Password:  monitoringPass,
 	}
 	mongoURL := []string{"mongodb://", cr.Spec.MongoDBSecurity.MongoDBAdminUser, ":", password, "@"}
 	for node := 0; node < int(*cr.Spec.MongoDBClusterSize); node++ {
@@ -129,59 +125,31 @@ func CheckMongoDBClusterMonitoringUser(cr *opstreelabsinv1alpha1.MongoDBCluster)
 			mongoURL = append(mongoURL, mongogo.GetMongoNodeInfo(mongoParams, node))
 		}
 	}
-	mongoURL = append(mongoURL, fmt.Sprintf("/?replicaSet=%s", cr.ObjectMeta.Name))
+	mongoURL = append(mongoURL, fmt.Sprintf("/?replicaSet=%s", cr.Name))
 	mongoParams.MongoURL = strings.Join(mongoURL, "")
-	output, err := mongogo.GetMongoDBUser(mongoParams)
+	err := mongogo.GetOrCreateMonitoringUser(mongoParams)
 	if err != nil {
-		return false
-	}
-	logger.Info("Successfully executed the command to check monitoring user in MongoDB cluster")
-	return output
-}
-
-// CheckMonitoringUser is a method to check if monitoring user exists in MongoDB
-func CheckMonitoringUser(cr *opstreelabsinv1alpha1.MongoDB) bool {
-	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "MongoDB Monitoring User")
-	serviceName := fmt.Sprintf("%s-%s.%s", cr.ObjectMeta.Name, "standalone", cr.Namespace)
-	passwordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name, SecretKey: *cr.Spec.MongoDBSecurity.SecretRef.Key}
-	password := getMongoDBPassword(passwordParams)
-	monitoringUser := "monitoring"
-	mongoURL := fmt.Sprintf("mongodb://%s:%s@%s:27017/", cr.Spec.MongoDBSecurity.MongoDBAdminUser, password, serviceName)
-	mongoParams := mongogo.MongoDBParameters{
-		MongoURL:  mongoURL,
-		Namespace: cr.Namespace,
-		Name:      cr.ObjectMeta.Name,
-		UserName:  &monitoringUser,
-		SetupType: "standalone",
-	}
-	output, err := mongogo.GetMongoDBUser(mongoParams)
-	if err != nil {
-		return false
-	}
-	logger.Info("Successfully executed the command to check monitoring user")
-	return output
-}
-
-func GetMongoDBParamsForScaling(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
-	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "MongoDB Scaling")
-	serviceName := fmt.Sprintf("%s-%s.%s", cr.ObjectMeta.Name, "cluster", cr.Namespace)
-	passwordParams := secretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name, SecretKey: *cr.Spec.MongoDBSecurity.SecretRef.Key}
-	password := getMongoDBPassword(passwordParams)
-	mongoURL := fmt.Sprintf("mongodb://%s:%s@%s:27017/", cr.Spec.MongoDBSecurity.MongoDBAdminUser, password, serviceName)
-	mongoParams := mongogo.MongoDBParameters{
-		MongoURL:     mongoURL,
-		Namespace:    cr.Namespace,
-		Name:         cr.ObjectMeta.Name,
-		ClusterNodes: cr.Spec.MongoDBClusterSize,
-		SetupType:    "cluster",
-	}
-
-	err := mongogo.ScalingMongoClusterRS(mongoParams)
-	if err != nil {
-		logger.Error(err, "Unable to Scaling MongoDB cluster")
 		return err
 	}
-	logger.Info("Successfully Scaling MongoDB cluster")
+	logger.Info("Successfully executed the command to check monitoring user in MongoDB cluster")
+	return nil
+}
+
+func GetMongoDBParamsForScaling(mongoParams mongogo.MongoDBParameters, members int, version int) error {
+	var mongoURL string
+	for node := 0; node < members; node++ {
+		mongoURL += mongogo.GetMongoNodeInfo(mongoParams, node) + ","
+	}
+	mongoURL = strings.TrimRight(mongoURL, ",")
+	mongoURL = fmt.Sprintf("mongodb://%s:%s@%s/?replicaSet=%s", mongoParams.UserName, mongoParams.Password, mongoURL, mongoParams.Name)
+	mongoParams.MongoURL = mongoURL
+	mongoParams.Version = version + 1
+	err := mongogo.ScalingMongoClusterRS(mongoParams)
+	if err != nil {
+		Log.Error(err, "Unable to Scaling MongoDB cluster")
+		return err
+	}
+	Log.Info("Successfully Scaling MongoDB cluster")
 	return nil
 
 }

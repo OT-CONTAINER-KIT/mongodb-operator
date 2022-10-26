@@ -1,14 +1,15 @@
 package _type
 
 const (
-	Creating     string = "Creating"
-	Running      string = "Running"
-	Failed       string = "Failed"
-	Pending      string = "Pending"
-	Deleting     string = "Deleting"
-	Scaling      string = "Scaling"
-	ConnectError string = "ConnectError"
-	Healthy      string = "Healthy"
-	Unhealthy    string = "Unhealthy"
-	Expanding    string = "Expanding"
+	Creating      = "Creating"
+	Running       = "Running"
+	Failed        = "Failed"
+	Pending       = "Pending"
+	Deleting      = "Deleting"
+	Scaling       = "Scaling"
+	ConnectError  = "ConnectError"
+	Healthy       = "Healthy"
+	Unhealthy     = "Unhealthy"
+	Expanding     = "Expanding"
+	NotInitialYet = "NotInitialYet"
 )

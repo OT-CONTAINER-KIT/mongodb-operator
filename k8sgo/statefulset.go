@@ -71,8 +71,8 @@ func CreateOrUpdateStateFul(params statefulSetParameters, cluster *opstreelabsin
 		}
 		zap.S().Info("canExpandPVC true")
 		// delete sts
-		policy := metav1.DeletePropagationBackground
-		if err := generateK8sClient().AppsV1().StatefulSets(params.StatefulSetMeta.Name).Delete(context.TODO(), storedStateful.Name, metav1.DeleteOptions{PropagationPolicy: &policy}); err != nil {
+		policy := metav1.DeletePropagationOrphan
+		if err := generateK8sClient().AppsV1().StatefulSets(params.Namespace).Delete(context.TODO(), storedStateful.Name, metav1.DeleteOptions{PropagationPolicy: &policy}); err != nil {
 			return err
 		}
 
@@ -245,6 +245,6 @@ func getAdditionalConfig(params statefulSetParameters) []corev1.Volume {
 
 // logGenerator is a method to generate logging interfacce
 func logGenerator(name, namespace, resourceType string) logr.Logger {
-	reqLogger := log.WithValues("Namespace", namespace, "Name", name, "Resource Type", resourceType)
+	reqLogger := Log.WithValues("Namespace", namespace, "Name", name, "Resource Type", resourceType)
 	return reqLogger
 }

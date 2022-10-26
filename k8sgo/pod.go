@@ -5,6 +5,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
 )
@@ -12,7 +13,7 @@ import (
 func dealWithExpandingPVC(ctx context.Context, sts appsv1.StatefulSet) error {
 	// get pods
 	podList, err := generateK8sClient().CoreV1().Pods(sts.Namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: "app: " + sts.Name,
+		LabelSelector: labels.FormatLabels(sts.Labels),
 	})
 	if err != nil {
 		return err
@@ -21,7 +22,7 @@ func dealWithExpandingPVC(ctx context.Context, sts appsv1.StatefulSet) error {
 	for _, item := range podList.Items {
 		name := item.Name
 		// get pvc
-		pvc, err := generateK8sClient().CoreV1().PersistentVolumeClaims(sts.Namespace).Get(ctx, sts.Name+"cluster"+name, metav1.GetOptions{})
+		pvc, err := generateK8sClient().CoreV1().PersistentVolumeClaims(sts.Namespace).Get(ctx, sts.Name+"-"+name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -60,7 +61,7 @@ func doRebuildPod(ctx context.Context, pod *corev1.Pod, namespace string) error 
 
 	_, err := generateK8sClient().CoreV1().Pods(namespace).Create(ctx, newPod, metav1.CreateOptions{})
 	if err != nil {
-		log.Info(newPod.Name+"create failed ", err)
+		Log.Info(newPod.Name+"create failed ", err)
 		return err
 	}
 
@@ -70,12 +71,12 @@ func doRebuildPod(ctx context.Context, pod *corev1.Pod, namespace string) error 
 			return false, client.IgnoreNotFound(err3)
 		}
 		if currentPod.Status.Phase != "Running" {
-			log.Info(currentPod.Name + " is not running yet")
+			Log.Info(currentPod.Name + " is not running yet")
 			return false, nil
 		}
 		for _, c := range currentPod.Status.ContainerStatuses {
 			if !c.Ready {
-				log.Info(currentPod.Name + "|" + c.Image + " is not ready yet")
+				Log.Info(currentPod.Name + "|" + c.Image + " is not ready yet")
 				return false, nil
 			}
 		}

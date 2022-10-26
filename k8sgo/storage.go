@@ -28,7 +28,7 @@ func canExpandPVC(oldDataStorage resource.Quantity, newDataStorage *resource.Qua
 
 func doExpandPVC(ctx context.Context, pvc *v1.PersistentVolumeClaim, sts appsv1.StatefulSet) error {
 	name := pvc.Name
-	zap.S().Info("expand PVC【", name, "】 start")
+	Log.Info("expand PVC【", name, "】 start")
 	pvc.Spec.Resources.Requests = sts.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests
 
 	if _, err := generateK8sClient().CoreV1().PersistentVolumeClaims(sts.Namespace).Update(
@@ -55,14 +55,14 @@ func doExpandPVC(ctx context.Context, pvc *v1.PersistentVolumeClaim, sts appsv1.
 			// Pod0's PVC need to expand, but Pod1's PVC has created as 30Gi, so need to skip it.
 
 			if equality.Semantic.DeepEqual(capacity, pvc.Spec.Resources.Requests) {
-				zap.S().Info("Executing expand PVC【", name, "】 completed")
+				Log.Info("Executing expand PVC【", name, "】 completed")
 				return true, nil
 			}
-			zap.S().Info("Executing expand PVC【", name, "】 not start")
+			Log.Info("Executing expand PVC【", name, "】 not start")
 			return false, nil
 		}
 		status := conditons[0].Type
-		zap.S().Info("Executing expand PVC【", name, "】, storage 【", capacity.Storage(), "】, status 【", status, "】")
+		Log.Info("Executing expand PVC【", name, "】, storage 【", capacity.Storage(), "】, status 【", status, "】")
 		if status == "FileSystemResizePending" {
 			return true, nil
 		}
