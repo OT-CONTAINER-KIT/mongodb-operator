@@ -77,7 +77,7 @@ func CreateOrUpdateStateFul(params statefulSetParameters, cluster *opstreelabsin
 		}
 
 		// expand pvc
-		if err := dealWithExpandingPVC(context.TODO(), *storedStateful); err != nil {
+		if err := dealWithExpandingPVC(context.TODO(), *statefulSetDef); err != nil {
 			return err
 		}
 

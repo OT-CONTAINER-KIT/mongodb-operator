@@ -112,7 +112,7 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if err != nil {
 		if err.Error() == "expanding" {
 			return status.Update(r.Client.Status(), instance, statusOptions().
-				withMessage(Info, "expanding pvc").
+				withMessage(Info, "Expanding pvc").
 				withExpandingState(5),
 			)
 		}

@@ -61,7 +61,7 @@ func doRebuildPod(ctx context.Context, pod *corev1.Pod, namespace string) error 
 
 	_, err := generateK8sClient().CoreV1().Pods(namespace).Create(ctx, newPod, metav1.CreateOptions{})
 	if err != nil {
-		Log.Info(newPod.Name+"create failed ", err)
+		Log.Info("Create failed ", "name", newPod.Name, "err", err)
 		return err
 	}
 
@@ -71,12 +71,12 @@ func doRebuildPod(ctx context.Context, pod *corev1.Pod, namespace string) error 
 			return false, client.IgnoreNotFound(err3)
 		}
 		if currentPod.Status.Phase != "Running" {
-			Log.Info(currentPod.Name + " is not running yet")
+			Log.Info("CurrentPod is not running yet", "name", currentPod.Name)
 			return false, nil
 		}
 		for _, c := range currentPod.Status.ContainerStatuses {
 			if !c.Ready {
-				Log.Info(currentPod.Name + "|" + c.Image + " is not ready yet")
+				Log.Info("currentPod's image is not ready yet", "podName", currentPod.Name, "imageName", c.Image)
 				return false, nil
 			}
 		}

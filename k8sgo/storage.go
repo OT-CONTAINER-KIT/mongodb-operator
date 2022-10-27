@@ -6,7 +6,6 @@ import (
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,9 +25,9 @@ func canExpandPVC(oldDataStorage resource.Quantity, newDataStorage *resource.Qua
 	return dataChanged
 }
 
-func doExpandPVC(ctx context.Context, pvc *v1.PersistentVolumeClaim, sts appsv1.StatefulSet) error {
+func doExpandPVC(ctx context.Context, pvc *corev1.PersistentVolumeClaim, sts appsv1.StatefulSet) error {
 	name := pvc.Name
-	Log.Info("expand PVC【", name, "】 start")
+	Log.Info("Ready to expand PVC", "name", name)
 	pvc.Spec.Resources.Requests = sts.Spec.VolumeClaimTemplates[0].Spec.Resources.Requests
 
 	if _, err := generateK8sClient().CoreV1().PersistentVolumeClaims(sts.Namespace).Update(
@@ -40,10 +39,9 @@ func doExpandPVC(ctx context.Context, pvc *v1.PersistentVolumeClaim, sts appsv1.
 	}
 	if err := retry(time.Second*2, time.Duration(waitLimit)*time.Second, func() (bool, error) {
 		// Check the pvc status.
-		var currentPVC corev1.PersistentVolumeClaim
-
-		if _, err2 := generateK8sClient().CoreV1().PersistentVolumeClaims(sts.Namespace).Get(ctx, name, metav1.GetOptions{}); err2 != nil {
-			return true, err2
+		currentPVC, err1 := generateK8sClient().CoreV1().PersistentVolumeClaims(sts.Namespace).Get(ctx, name, metav1.GetOptions{})
+		if err1 != nil {
+			return true, err1
 		}
 		var conditons = currentPVC.Status.Conditions
 		capacity := currentPVC.Status.Capacity
@@ -55,14 +53,15 @@ func doExpandPVC(ctx context.Context, pvc *v1.PersistentVolumeClaim, sts appsv1.
 			// Pod0's PVC need to expand, but Pod1's PVC has created as 30Gi, so need to skip it.
 
 			if equality.Semantic.DeepEqual(capacity, pvc.Spec.Resources.Requests) {
-				Log.Info("Executing expand PVC【", name, "】 completed")
+				Log.Info("Done with expanding PVC", "name", name)
 				return true, nil
 			}
-			Log.Info("Executing expand PVC【", name, "】 not start")
+			Log.Info("Expand PVC not start", "name", name)
 			return false, nil
 		}
 		status := conditons[0].Type
-		Log.Info("Executing expand PVC【", name, "】, storage 【", capacity.Storage(), "】, status 【", status, "】")
+		quantity := capacity["storage"]
+		Log.Info("Executing expand PVC", "name", name, ",storage ", quantity.String(), ",status ", string(status))
 		if status == "FileSystemResizePending" {
 			return true, nil
 		}

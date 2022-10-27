@@ -116,6 +116,14 @@ func getEnvironmentVariables(params containerParameters) []corev1.EnvVar {
 				Name:  "MONGO_CONF",
 				Value: "/etc/mongo.d/extra/mongo.yaml",
 			},
+			{
+				Name:  "CONFIGMAP_HASH",
+				Value: "",
+			},
+			{
+				Name:  "CERTIFICATE_HASH",
+				Value: "",
+			},
 		}
 	}
 	if params.MongoReplicaSetName != nil {

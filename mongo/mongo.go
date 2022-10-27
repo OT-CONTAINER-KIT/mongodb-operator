@@ -20,14 +20,15 @@ const (
 
 // MongoDBParameters is a struct for MongoDB related inputs
 type MongoDBParameters struct {
-	MongoURL     string
-	SetupType    string
-	Namespace    string
-	Name         string
-	Password     string
-	UserName     *string
-	ClusterNodes *int32
-	Version      int
+	MongoURL        string
+	MongoClusterURL string
+	SetupType       string
+	Namespace       string
+	Name            string
+	Password        string
+	UserName        *string
+	ClusterNodes    *int32
+	Version         int
 }
 
 // initiateMongoClient is a method to create client connection with MongoDB
@@ -47,7 +48,7 @@ func initiateMongoClusterClient(params MongoDBParameters) *mongo.Client {
 	logger := logGenerator(params.Name, params.Namespace, "MongoDB Cluster Client")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(params.MongoURL))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(params.MongoClusterURL))
 	if err != nil {
 		logger.Error(err, "Unable to establish connection with MongoDB Cluster")
 	}
@@ -151,7 +152,12 @@ func CheckReplSetGetStatus(params MongoDBParameters) (error, bson.M) {
 	// if not ok , exec initializing
 	var mongoNodeInfo []bson.M
 	for node := 0; node < int(*params.ClusterNodes); node++ {
-		mongoNodeInfo = append(mongoNodeInfo, bson.M{"_id": node, "host": GetMongoNodeInfo(params, node)})
+		if node == 0 {
+			// pod-0 is marked as master
+			mongoNodeInfo = append(mongoNodeInfo, bson.M{"_id": node, "host": GetMongoNodeInfo(params, node), "priority": 2})
+		} else {
+			mongoNodeInfo = append(mongoNodeInfo, bson.M{"_id": node, "host": GetMongoNodeInfo(params, node)})
+		}
 	}
 	config := bson.M{
 		"_id":     params.Name,

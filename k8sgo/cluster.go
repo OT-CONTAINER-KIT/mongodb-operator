@@ -65,7 +65,7 @@ func CreateMongoClusterSetup(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
 	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "StatefulSet")
 	err := CreateOrUpdateStateFul(getMongoDBClusterParams(cr), cr, nil)
 	if err != nil {
-		logger.Error(err, "Cannot create cluster StatefulSet for MongoDB")
+		//logger.Error(err, "Cannot create cluster StatefulSet for MongoDB")
 		return err
 	}
 	if cr.Spec.PodDisruptionBudget != nil && cr.Spec.PodDisruptionBudget.Enabled {

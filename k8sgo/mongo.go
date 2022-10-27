@@ -11,17 +11,19 @@ import (
 // CheckMongoClusterState is a method to check mongodb cluster state
 func CheckMongoClusterState(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
 	logger := logGenerator(cr.Name, cr.Namespace, "MongoDB Cluster Setup")
-	serviceName := fmt.Sprintf("%s-%s.%s", cr.Name, "cluster", cr.Namespace)
 	passwordParams := secretsParameters{Name: cr.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name, SecretKey: *cr.Spec.MongoDBSecurity.SecretRef.Key}
 	password := getMongoDBPassword(passwordParams)
-	mongoURL := fmt.Sprintf("mongodb://%s:%s@%s:27017/", cr.Spec.MongoDBSecurity.MongoDBAdminUser, password, serviceName)
+	username := cr.Spec.MongoDBSecurity.MongoDBAdminUser
 	mongoParams := mongogo.MongoDBParameters{
-		MongoURL:     mongoURL,
 		Namespace:    cr.Namespace,
 		Name:         cr.Name,
 		ClusterNodes: cr.Spec.MongoDBClusterSize,
 		SetupType:    "cluster",
+		Password:     password,
+		UserName:     &username,
 	}
+	mongoURL := fmt.Sprintf("mongodb://%s:%s@%s/", username, password, mongogo.GetMongoNodeInfo(mongoParams, 0))
+	mongoParams.MongoURL = mongoURL
 	err, result := mongogo.CheckReplSetGetStatus(mongoParams)
 	if err != nil {
 		return err
@@ -31,9 +33,9 @@ func CheckMongoClusterState(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
 		members := result["members"].(primitive.A)
 		membersArray := []interface{}(members)
 		if int(*mongoParams.ClusterNodes) != len(membersArray) {
-			var version int
-			version = result["term"].(int)
-			err := GetMongoDBParamsForScaling(mongoParams, len(membersArray), version)
+			var version int64
+			version = result["term"].(int64)
+			err := GetMongoDBParamsForScaling(mongoParams, len(membersArray), int(version))
 			if err != nil {
 				return err
 			}
@@ -117,17 +119,7 @@ func CheckMongoDBClusterMonitoringUser(cr *opstreelabsinv1alpha1.MongoDBCluster)
 		SetupType: "cluster",
 		Password:  monitoringPass,
 	}
-	mongoURL := []string{"mongodb://", cr.Spec.MongoDBSecurity.MongoDBAdminUser, ":", password, "@"}
-	for node := 0; node < int(*cr.Spec.MongoDBClusterSize); node++ {
-		if node != int(*cr.Spec.MongoDBClusterSize) {
-			mongoURL = append(mongoURL, fmt.Sprintf("%s,", mongogo.GetMongoNodeInfo(mongoParams, node)))
-		} else {
-			mongoURL = append(mongoURL, mongogo.GetMongoNodeInfo(mongoParams, node))
-		}
-	}
-	mongoURL = append(mongoURL, fmt.Sprintf("/?replicaSet=%s", cr.Name))
-	mongoParams.MongoURL = strings.Join(mongoURL, "")
-	err := mongogo.GetOrCreateMonitoringUser(mongoParams)
+	err := mongogo.GetOrCreateMonitoringUser(GetMongoDBClusterURL(mongoParams, cr, password))
 	if err != nil {
 		return err
 	}
@@ -135,14 +127,28 @@ func CheckMongoDBClusterMonitoringUser(cr *opstreelabsinv1alpha1.MongoDBCluster)
 	return nil
 }
 
-func GetMongoDBParamsForScaling(mongoParams mongogo.MongoDBParameters, members int, version int) error {
-	var mongoURL string
-	for node := 0; node < members; node++ {
-		mongoURL += mongogo.GetMongoNodeInfo(mongoParams, node) + ","
+func GetMongoDBClusterURL(mongoParams mongogo.MongoDBParameters, cr *opstreelabsinv1alpha1.MongoDBCluster, password string) mongogo.MongoDBParameters {
+	mongoClusterURL := []string{"mongodb://", cr.Spec.MongoDBSecurity.MongoDBAdminUser, ":", password, "@"}
+	for node := 0; node < int(*cr.Spec.MongoDBClusterSize); node++ {
+		if node != int(*cr.Spec.MongoDBClusterSize) {
+			mongoClusterURL = append(mongoClusterURL, fmt.Sprintf("%s,", mongogo.GetMongoNodeInfo(mongoParams, node)))
+		} else {
+			mongoClusterURL = append(mongoClusterURL, mongogo.GetMongoNodeInfo(mongoParams, node))
+		}
 	}
-	mongoURL = strings.TrimRight(mongoURL, ",")
-	mongoURL = fmt.Sprintf("mongodb://%s:%s@%s/?replicaSet=%s", mongoParams.UserName, mongoParams.Password, mongoURL, mongoParams.Name)
-	mongoParams.MongoURL = mongoURL
+	mongoClusterURL = append(mongoClusterURL, fmt.Sprintf("/?replicaSet=%s", cr.Name))
+	mongoParams.MongoClusterURL = strings.Join(mongoClusterURL, "")
+	return mongoParams
+}
+
+func GetMongoDBParamsForScaling(mongoParams mongogo.MongoDBParameters, members int, version int) error {
+	var mongoClusterURL string
+	for node := 0; node < members; node++ {
+		mongoClusterURL += mongogo.GetMongoNodeInfo(mongoParams, node) + ","
+	}
+	mongoClusterURL = strings.TrimRight(mongoClusterURL, ",")
+	mongoClusterURL = fmt.Sprintf("mongodb://%s:%s@%s/?replicaSet=%s", *mongoParams.UserName, mongoParams.Password, mongoClusterURL, mongoParams.Name)
+	mongoParams.MongoClusterURL = mongoClusterURL
 	mongoParams.Version = version + 1
 	err := mongogo.ScalingMongoClusterRS(mongoParams)
 	if err != nil {
