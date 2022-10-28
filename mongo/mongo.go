@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/go-logr/logr"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -191,20 +192,40 @@ func logGenerator(name, namespace, resourceType string) logr.Logger {
 func ScalingMongoClusterRS(params MongoDBParameters) error {
 	var mongoNodeInfo []bson.M
 	client := initiateMongoClusterClient(params)
+
+	// get version and term
+	var result bson.M
+	err := client.Database(dbName).RunCommand(context.Background(), bson.D{{Key: "replSetGetConfig", Value: 1}}).Decode(&result)
+	if err != nil {
+		return err
+	}
+	var version int32
+
+	if result != nil && result["ok"] != 0 {
+		config := result["config"].(primitive.M)
+		if config != nil {
+			version = config["version"].(int32)
+		}
+	}
+
 	for node := 0; node < int(*params.ClusterNodes); node++ {
-		mongoNodeInfo = append(mongoNodeInfo, bson.M{"_id": node, "host": GetMongoNodeInfo(params, node)})
+		if node == 0 {
+			// pod-0 is marked as master
+			mongoNodeInfo = append(mongoNodeInfo, bson.M{"_id": node, "host": GetMongoNodeInfo(params, node), "priority": 2})
+		} else {
+			mongoNodeInfo = append(mongoNodeInfo, bson.M{"_id": node, "host": GetMongoNodeInfo(params, node)})
+		}
 	}
 	config := bson.M{
 		"_id":     params.Name,
-		"version": params.Version,
+		"version": version + 1,
 		"members": mongoNodeInfo,
 	}
 	response := client.Database(dbName).RunCommand(context.Background(), bson.M{"replSetReconfig": config})
 	if response.Err() != nil {
 		return response.Err()
 	}
-	err := discconnectMongoClient(client)
-	if err != nil {
+	if err := discconnectMongoClient(client); err != nil {
 		return err
 	}
 	return nil

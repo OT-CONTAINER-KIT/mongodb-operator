@@ -33,12 +33,11 @@ func CheckMongoClusterState(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
 		members := result["members"].(primitive.A)
 		membersArray := []interface{}(members)
 		if int(*mongoParams.ClusterNodes) != len(membersArray) {
-			var version int64
-			version = result["term"].(int64)
-			err := GetMongoDBParamsForScaling(mongoParams, len(membersArray), int(version))
-			if err != nil {
+			if err := mongogo.ScalingMongoClusterRS(GetMongoDBParamsForScaling(mongoParams, len(membersArray))); err != nil {
+				Log.Error(err, "Unable to Scaling MongoDB cluster")
 				return err
 			}
+			Log.Info("Successfully Scaling MongoDB cluster")
 		}
 	}
 
@@ -141,7 +140,7 @@ func GetMongoDBClusterURL(mongoParams mongogo.MongoDBParameters, cr *opstreelabs
 	return mongoParams
 }
 
-func GetMongoDBParamsForScaling(mongoParams mongogo.MongoDBParameters, members int, version int) error {
+func GetMongoDBParamsForScaling(mongoParams mongogo.MongoDBParameters, members int) mongogo.MongoDBParameters {
 	var mongoClusterURL string
 	for node := 0; node < members; node++ {
 		mongoClusterURL += mongogo.GetMongoNodeInfo(mongoParams, node) + ","
@@ -149,13 +148,6 @@ func GetMongoDBParamsForScaling(mongoParams mongogo.MongoDBParameters, members i
 	mongoClusterURL = strings.TrimRight(mongoClusterURL, ",")
 	mongoClusterURL = fmt.Sprintf("mongodb://%s:%s@%s/?replicaSet=%s", *mongoParams.UserName, mongoParams.Password, mongoClusterURL, mongoParams.Name)
 	mongoParams.MongoClusterURL = mongoClusterURL
-	mongoParams.Version = version + 1
-	err := mongogo.ScalingMongoClusterRS(mongoParams)
-	if err != nil {
-		Log.Error(err, "Unable to Scaling MongoDB cluster")
-		return err
-	}
-	Log.Info("Successfully Scaling MongoDB cluster")
-	return nil
 
+	return mongoParams
 }

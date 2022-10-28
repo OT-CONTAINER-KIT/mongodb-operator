@@ -3,7 +3,7 @@ kind: MongoDBCluster
 metadata:
   name: mongodb
 spec:
-  clusterSize: 5
+  clusterSize: 4
   kubernetesConfig:
     image: docker.io/radondb/ot-mongodb:v5.0.1
     imagePullPolicy: IfNotPresent
