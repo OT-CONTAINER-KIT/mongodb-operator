@@ -13,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	opstreelabsinv1alpha1 "mongodb-operator/api/v1alpha1"
 	types "mongodb-operator/k8sgo/type"
+	"strings"
 )
 
 // statefulSetParameters is the input struct for MongoDB statefulset
@@ -229,6 +230,36 @@ func generatePersistentVolumeTemplate(params pvcParameters) corev1.PersistentVol
 
 // getAdditionalConfig will return the MongoDB additional configuration
 func getAdditionalConfig(params statefulSetParameters) []corev1.Volume {
+	if params.TLS {
+		var configAlreadySet bool
+		// update tls configuration
+		configMap, _ := generateK8sClient().CoreV1().ConfigMaps(params.Namespace).Get(context.TODO(), *params.AdditionalConfig, metav1.GetOptions{})
+		if configMap != nil {
+			mongodbConfig := configMap.Data["mongo.yaml"]
+			if mongodbConfig != "" {
+				stringArr := strings.Split(mongodbConfig, "\n")
+				for _, value := range stringArr {
+					if strings.Contains(value, "tls") {
+						configAlreadySet = true
+						break
+					}
+				}
+				if !configAlreadySet {
+					stringArr = append(stringArr, "net.tls.mode: preferTLS")
+					stringArr = append(stringArr, "net.tls.CAFile: "+tlsCAMountPath+tlsCACertName)
+					stringArr = append(stringArr, "net.tls.certificateKeyFile: "+tlsOperatorSecretMountPath+tlsSecretCertName)
+					stringArr = append(stringArr, "net.tls.allowConnectionsWithoutCertificates: true")
+					configMap.Data["mongo.yaml"] = strings.Join(stringArr, "\n")
+					_, err := generateK8sClient().CoreV1().ConfigMaps(params.Namespace).Update(context.TODO(), configMap, metav1.UpdateOptions{})
+					if err != nil {
+						return nil
+					}
+				}
+			}
+
+		}
+	}
+
 	return []corev1.Volume{
 		{
 			Name: "external-config",

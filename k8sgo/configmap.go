@@ -13,3 +13,12 @@ func ReadData(namespace string, cmName string) (map[string]string, error) {
 	}
 	return configmap.Data, nil
 }
+
+// CheckConfigMapExist is a method to check configmap exists
+//func CheckConfigMapExist(namespace string, cmName string) bool {
+//	config, err := generateK8sClient().CoreV1().ConfigMaps(namespace).Get(context.TODO(), cmName, metav1.GetOptions{})
+//	if err != nil {
+//		return false
+//	}
+//	return true
+//}

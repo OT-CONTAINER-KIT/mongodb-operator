@@ -30,6 +30,7 @@ type MongoDBParameters struct {
 	UserName        *string
 	ClusterNodes    *int32
 	Version         int
+	Initialed       bool
 }
 
 // initiateMongoClient is a method to create client connection with MongoDB
@@ -136,18 +137,24 @@ func InitiateMongoClusterRS(params MongoDBParameters) error {
 }
 
 // CheckReplSetGetStatus is a method to check if cluster is initailized or not
-func CheckReplSetGetStatus(params MongoDBParameters) (error, bson.M) {
-	client := initiateMongoClient(params)
+func CheckReplSetGetStatus(params MongoDBParameters) (error, bson.M, bool) {
+	var client *mongo.Client
+	if params.Initialed {
+		client = initiateMongoClusterClient(params)
+	} else {
+		client = initiateMongoClient(params)
+	}
+
 	var result bson.M
 	err := client.Database(dbName).RunCommand(context.Background(), bson.D{{Key: "replSetGetStatus", Value: 1}}).Decode(&result)
 	if err != nil {
-		if err.Error() != "(NotYetInitialized) no replset config has been received" {
-			return err, result
+		if err.Error() != "(NotYetInitialized) no replset config has been received" && err.Error() != "(InvalidReplicaSetConfig) Our replica set config is invalid or we are not a member of it" {
+			return err, result, false
 		}
 	}
 
 	if result != nil && result["ok"] != 0 {
-		return nil, result
+		return nil, result, true
 	}
 
 	// if not ok , exec initializing
@@ -166,9 +173,9 @@ func CheckReplSetGetStatus(params MongoDBParameters) (error, bson.M) {
 	}
 	response := client.Database(dbName).RunCommand(context.Background(), bson.M{"replSetInitiate": config})
 	if response.Err() != nil {
-		return response.Err(), result
+		return response.Err(), result, false
 	}
-
+	params.Initialed = true
 	defer func() {
 		if err := client.Disconnect(context.Background()); err != nil {
 			return

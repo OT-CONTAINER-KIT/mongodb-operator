@@ -3,17 +3,17 @@ kind: MongoDBCluster
 metadata:
   name: mongodb
 spec:
-  clusterSize: 4
+  clusterSize: 3
   kubernetesConfig:
     image: docker.io/radondb/ot-mongodb:v5.0.1
     imagePullPolicy: IfNotPresent
     resources:
       requests:
         cpu: 401m
-        memory: 1028Mi
+        memory: 2028Mi
       limits:
         cpu: 401m
-        memory: 1028Mi
+        memory: 2028Mi
     securityContext:
       fsGroup: 1001
   storage:
@@ -23,7 +23,7 @@ spec:
   mongoDBSecurity:
     mongoDBAdminUser: admin
     secretRef:
-      name: mongodb-secret
+      name: admin-password-secret
       key: password
   mongoDBMonitoring:
     enableExporter: true
@@ -32,12 +32,18 @@ spec:
   mongoDBAdditionalConfig: mongo-additional-config
   security:
     tls:
-      enabled: false
+      enabled: true
+      certificateKeySecretRef:
+        name: mongo-ext-cert
+      caConfigMapRef:
+        name: mongo-ext-ca
+#      caCertificateSecretRef:
+#        name:
 ---
 apiVersion: v1
 kind: Secret
 metadata:
-  name: mongodb-secret
+  name: admin-password-secret
 type: Opaque
 stringData:
   password: admin_pwd
@@ -49,43 +55,23 @@ metadata:
   name: mongo-additional-config
 data:
   mongo.yaml: |
-    net:
-      bindIpAll: true
-      port: 27017
-      maxIncomingConnections: 10000
-    storage:
-      wiredTiger:
-        engineConfig:
-          journalCompressor: zlib  # 数据压缩算法，不可更改
-    replication:
-      replSetName: mongodb
-      enableMajorityReadConcern: true
-    operationProfiling:
-      mode: "off"
-      slowOpThresholdMs: 100
-    security:
-      keyFile: /mongo-key/mongo-keyfile
-    storage:
-      dbPath: /data/db
-    processManagement:
-      pidFilePath: /tmp/mongod.pid
-    systemLog:
-      destination: file
-      path: /data/db/mongod.log
-      logAppend: true
-      logRotate: reopen
-      component:
-        command:
-          verbosity: 0
-        index:
-          verbosity: 0
-        query:
-          verbosity: 0
-        network:
-          verbosity: 0
-        write:
-          verbosity: 0
-    setParameter:
-      cursorTimeoutMillis: 700000
-
-
+    net.bindIpAll: true
+    net.port: 27017
+    net.maxIncomingConnections: 10000
+    storage.wiredTiger.engineConfig.journalCompressor: zlib  # 数据压缩算法，不可更改
+    replication.replSetName: mongodb
+    replication.enableMajorityReadConcern: true
+    operationProfiling.mode: "off"
+    operationProfiling.slowOpThresholdMs: 200
+    security.keyFile: /mongo-key/mongo-keyfile
+    storage.dbPath: /data/db
+    processManagement.pidFilePath: /tmp/mongod.pid
+    systemLog.destination: file
+    systemLog.path: /data/db/mongod.log
+    systemLog.logAppend: true
+    systemLog.logRotate: reopen
+    systemLog.component.command.verbosity: 0
+    systemLog.component.index.verbosity: 0
+    systemLog.component.query.verbosity: 0
+    systemLog.component.network.verbosity: 0
+    systemLog.component.write.verbosity: 0

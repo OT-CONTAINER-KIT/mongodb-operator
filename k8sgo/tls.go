@@ -142,8 +142,7 @@ func EnsureTLSResources(instance *opstreelabsinv1alpha1.MongoDBCluster) error {
 	if !instance.Spec.Security.TLS.Enabled {
 		return nil
 	}
-	// the TLS secret needs to be created beforehand, as both the StatefulSet and AutomationConfig
-	// require the contents.
+	// The TLS secret needs to be created beforehand
 
 	Log.Info("TLS is enabled, creating/updating CA secret")
 	if err := ensureCASecret(instance); err != nil {
@@ -173,12 +172,12 @@ func ensureCASecret(instance *opstreelabsinv1alpha1.MongoDBCluster) error {
 		"role":          "cluster",
 	}
 	params := secretsParameters{
-		SecretsMeta: generateObjectMetaInformation(instance.Name, instance.Namespace, labels, generateAnnotations()),
+		SecretsMeta: generateObjectMetaInformation(instance.Name+"-cluster-ca-certificate", instance.Namespace, labels, generateAnnotations()),
 		OwnerDef:    mongoClusterAsOwner(instance),
 		Namespace:   instance.Namespace,
 		Labels:      labels,
 		Annotations: generateAnnotations(),
-		Name:        instance.Name + "-ca-certificate",
+		Name:        instance.Name + "-cluster-ca-certificate",
 		Data:        cert,
 	}
 
@@ -200,12 +199,12 @@ func ensureTLSSecret(instance *opstreelabsinv1alpha1.MongoDBCluster) error {
 		"role":          "cluster",
 	}
 	params := secretsParameters{
-		SecretsMeta: generateObjectMetaInformation(instance.Name, instance.Namespace, labels, generateAnnotations()),
+		SecretsMeta: generateObjectMetaInformation(instance.Name+"-cluster-server-certificate-key", instance.Namespace, labels, generateAnnotations()),
 		OwnerDef:    mongoClusterAsOwner(instance),
 		Namespace:   instance.Namespace,
 		Labels:      labels,
 		Annotations: generateAnnotations(),
-		Name:        instance.Name + "-server-certificate-key",
+		Name:        instance.Name + "-cluster-server-certificate-key",
 		Data:        certKey,
 	}
 

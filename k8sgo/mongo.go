@@ -9,7 +9,7 @@ import (
 )
 
 // CheckMongoClusterState is a method to check mongodb cluster state
-func CheckMongoClusterState(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
+func CheckMongoClusterState(cr *opstreelabsinv1alpha1.MongoDBCluster) (bool, error) {
 	logger := logGenerator(cr.Name, cr.Namespace, "MongoDB Cluster Setup")
 	passwordParams := secretsParameters{Name: cr.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name, SecretKey: *cr.Spec.MongoDBSecurity.SecretRef.Key}
 	password := getMongoDBPassword(passwordParams)
@@ -21,28 +21,31 @@ func CheckMongoClusterState(cr *opstreelabsinv1alpha1.MongoDBCluster) error {
 		SetupType:    "cluster",
 		Password:     password,
 		UserName:     &username,
+		Initialed:    cr.Status.Initialed,
 	}
 	mongoURL := fmt.Sprintf("mongodb://%s:%s@%s/", username, password, mongogo.GetMongoNodeInfo(mongoParams, 0))
 	mongoParams.MongoURL = mongoURL
-	err, result := mongogo.CheckReplSetGetStatus(mongoParams)
+
+	err, result, initialed := mongogo.CheckReplSetGetStatus(GetMongoDBClusterParams(mongoParams, int(*cr.Spec.MongoDBClusterSize)))
+
 	if err != nil {
-		return err
+		return initialed, err
 	}
 
 	if result != nil || result["members"] != "" {
 		members := result["members"].(primitive.A)
 		membersArray := []interface{}(members)
 		if int(*mongoParams.ClusterNodes) != len(membersArray) {
-			if err := mongogo.ScalingMongoClusterRS(GetMongoDBParamsForScaling(mongoParams, len(membersArray))); err != nil {
+			if err := mongogo.ScalingMongoClusterRS(GetMongoDBClusterParams(mongoParams, len(membersArray))); err != nil {
 				Log.Error(err, "Unable to Scaling MongoDB cluster")
-				return err
+				return initialed, err
 			}
 			Log.Info("Successfully Scaling MongoDB cluster")
 		}
 	}
 
 	logger.Info("Successfully checked the MongoDB cluster state")
-	return nil
+	return initialed, nil
 }
 
 // CreateMongoDBMonitoringUser is a method to create a monitoring user for MongoDB
@@ -140,7 +143,7 @@ func GetMongoDBClusterURL(mongoParams mongogo.MongoDBParameters, cr *opstreelabs
 	return mongoParams
 }
 
-func GetMongoDBParamsForScaling(mongoParams mongogo.MongoDBParameters, members int) mongogo.MongoDBParameters {
+func GetMongoDBClusterParams(mongoParams mongogo.MongoDBParameters, members int) mongogo.MongoDBParameters {
 	var mongoClusterURL string
 	for node := 0; node < members; node++ {
 		mongoClusterURL += mongogo.GetMongoNodeInfo(mongoParams, node) + ","

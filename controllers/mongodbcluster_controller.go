@@ -132,6 +132,7 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	if instance.Status.State == "" {
+		instance.Status.Initialed = false
 		return status.Update(r.Client.Status(), instance, statusOptions().
 			withMessage(Info, "Creating cluster").
 			withCreatingState(10),
@@ -148,10 +149,13 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{RequeueAfter: time.Second * 10}, nil
 	}
 
-	if err := k8sgo.CheckMongoClusterState(instance); err != nil {
+	initialed, err := k8sgo.CheckMongoClusterState(instance)
+
+	if err != nil {
 		return status.Update(r.Client.Status(), instance, statusOptions().
 			withMessage(Warn, fmt.Sprintf("Error with connecting mongodb: %s", err)).
-			withPendingState(5),
+			withPendingState(5).
+			withInitialed(initialed),
 		)
 	}
 
@@ -160,12 +164,14 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	if err := k8sgo.CheckMongoDBClusterMonitoringUser(instance); err != nil {
 		return status.Update(r.Client.Status(), instance, statusOptions().
 			withMessage(Warn, fmt.Sprintf("Error with checking monitor user in mongodb: %s", err)).
+			withInitialed(initialed).
 			withPendingState(5),
 		)
 	}
 
 	return status.Update(r.Client.Status(), instance, statusOptions().
 		withMessage(Info, "done").
+		withInitialed(initialed).
 		withRunningState(),
 	)
 }

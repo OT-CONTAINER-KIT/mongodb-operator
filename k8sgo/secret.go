@@ -24,6 +24,10 @@ type secretsParameters struct {
 func CreateSecret(params secretsParameters, key string) error {
 	secretDef := generateSecret(params, key)
 	logger := logGenerator(params.Name, params.Namespace, "Secret")
+	// get before create
+	if CheckSecretExist(params.Namespace, params.Name) {
+		return nil
+	}
 	_, err := generateK8sClient().CoreV1().Secrets(params.Namespace).Create(context.TODO(), secretDef, metav1.CreateOptions{})
 	if err != nil {
 		logger.Error(err, "MongoDB secret creation is failed")

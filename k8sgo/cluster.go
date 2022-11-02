@@ -179,6 +179,7 @@ func getMongoDBClusterParams(cr *opstreelabsinv1alpha1.MongoDBCluster) statefulS
 
 	if cr.Spec.Security.TLS.Enabled {
 		params.TLS = true
+		params.ContainerParams.TLS = true
 	}
 
 	return params

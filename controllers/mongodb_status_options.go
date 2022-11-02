@@ -47,6 +47,14 @@ func (o *optionBuilder) withVersion(version string) *optionBuilder {
 	return o
 }
 
+func (o *optionBuilder) withInitialed(initialed bool) *optionBuilder {
+	o.options = append(o.options,
+		initialedOption{
+			initialed: initialed,
+		})
+	return o
+}
+
 type versionOption struct {
 	version string
 }
@@ -66,6 +74,18 @@ func (o *optionBuilder) withState(state string, retryAfter int) *optionBuilder {
 			retryAfter: retryAfter,
 		})
 	return o
+}
+
+type initialedOption struct {
+	initialed bool
+}
+
+func (i initialedOption) ApplyOption(mdb *mdb.MongoDBCluster) {
+	mdb.Status.Initialed = i.initialed
+}
+
+func (i initialedOption) GetResult() (reconcile.Result, error) {
+	return results.OK()
 }
 
 type message struct {
@@ -127,7 +147,7 @@ func (o *optionBuilder) withScalingState(retryAfter int) *optionBuilder {
 }
 
 func (o *optionBuilder) withRunningState() *optionBuilder {
-	return o.withState(_type.Running, -1)
+	return o.withState(_type.Running, 0)
 }
 
 func (o *optionBuilder) withExpandingState(retryAfter int) *optionBuilder {
