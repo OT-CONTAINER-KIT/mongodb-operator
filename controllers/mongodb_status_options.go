@@ -147,7 +147,7 @@ func (o *optionBuilder) withScalingState(retryAfter int) *optionBuilder {
 }
 
 func (o *optionBuilder) withRunningState() *optionBuilder {
-	return o.withState(_type.Running, 0)
+	return o.withState(_type.Running, 10)
 }
 
 func (o *optionBuilder) withExpandingState(retryAfter int) *optionBuilder {
@@ -165,7 +165,7 @@ func (s stateOption) ApplyOption(mdb *mdb.MongoDBCluster) {
 
 func (s stateOption) GetResult() (reconcile.Result, error) {
 	if s.state == _type.Running {
-		return results.OK()
+		return results.Retry(s.retryAfter)
 	}
 	if s.state == _type.Pending {
 		return results.Retry(s.retryAfter)

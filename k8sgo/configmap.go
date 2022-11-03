@@ -2,6 +2,8 @@ package k8sgo
 
 import (
 	"context"
+	"crypto/sha1"
+	"encoding/hex"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -12,6 +14,12 @@ func ReadData(namespace string, cmName string) (map[string]string, error) {
 		return nil, err
 	}
 	return configmap.Data, nil
+}
+
+func generateHash(source []byte) string {
+	hash := sha1.New()
+	hash.Write(source)
+	return hex.EncodeToString(hash.Sum(nil))
 }
 
 // CheckConfigMapExist is a method to check configmap exists

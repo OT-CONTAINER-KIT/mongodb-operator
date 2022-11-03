@@ -25,6 +25,8 @@ type containerParameters struct {
 	ExtraVolumeMount          *corev1.VolumeMount
 	AdditonalConfig           *string
 	TLS                       bool
+	ConfigMapHash             string
+	CertificateHash           string
 }
 
 // generateContainerDef is to generate container definition for MongoDB
@@ -118,11 +120,11 @@ func getEnvironmentVariables(params containerParameters) []corev1.EnvVar {
 			},
 			{
 				Name:  "CONFIGMAP_HASH",
-				Value: "",
+				Value: params.ConfigMapHash,
 			},
 			{
 				Name:  "CERTIFICATE_HASH",
-				Value: "",
+				Value: params.CertificateHash,
 			},
 		}
 	}

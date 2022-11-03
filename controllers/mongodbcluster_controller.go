@@ -132,9 +132,9 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	if instance.Status.State == "" {
-		instance.Status.Initialed = false
 		return status.Update(r.Client.Status(), instance, statusOptions().
 			withMessage(Info, "Creating cluster").
+			withInitialed(false).
 			withCreatingState(10),
 		)
 	}

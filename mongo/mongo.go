@@ -88,6 +88,10 @@ func GetOrCreateMonitoringUser(params MongoDBParameters) error {
 	collection := client.Database("admin").Collection("system.users")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+	err := discconnectMongoClient(client)
+	if err != nil {
+		return err
+	}
 	opts := options.Count().SetMaxTime(10 * time.Second)
 	docsCount, err := collection.CountDocuments(ctx, bson.D{{"user", *params.UserName}}, opts)
 	if err != nil {
@@ -107,10 +111,6 @@ func GetOrCreateMonitoringUser(params MongoDBParameters) error {
 		return response.Err()
 	}
 
-	err = discconnectMongoClient(client)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -118,6 +118,10 @@ func GetOrCreateMonitoringUser(params MongoDBParameters) error {
 func InitiateMongoClusterRS(params MongoDBParameters) error {
 	var mongoNodeInfo []bson.M
 	client := initiateMongoClient(params)
+	err := discconnectMongoClient(client)
+	if err != nil {
+		return err
+	}
 	for node := 0; node < int(*params.ClusterNodes); node++ {
 		mongoNodeInfo = append(mongoNodeInfo, bson.M{"_id": node, "host": GetMongoNodeInfo(params, node)})
 	}
@@ -129,10 +133,7 @@ func InitiateMongoClusterRS(params MongoDBParameters) error {
 	if response.Err() != nil {
 		return response.Err()
 	}
-	err := discconnectMongoClient(client)
-	if err != nil {
-		return err
-	}
+
 	return nil
 }
 
@@ -144,11 +145,17 @@ func CheckReplSetGetStatus(params MongoDBParameters) (error, bson.M, bool) {
 	} else {
 		client = initiateMongoClient(params)
 	}
-
+	defer func() {
+		log.Info("Client disconnect", "clientId")
+		if err := client.Disconnect(context.Background()); err != nil {
+			return
+		}
+	}()
 	var result bson.M
+	log.Info("Executing command replSetGetStatus")
 	err := client.Database(dbName).RunCommand(context.Background(), bson.D{{Key: "replSetGetStatus", Value: 1}}).Decode(&result)
 	if err != nil {
-		if err.Error() != "(NotYetInitialized) no replset config has been received" && err.Error() != "(InvalidReplicaSetConfig) Our replica set config is invalid or we are not a member of it" {
+		if err.Error() != "(NotYetInitialized) no replset config has been received" {
 			return err, result, false
 		}
 	}
@@ -156,7 +163,6 @@ func CheckReplSetGetStatus(params MongoDBParameters) (error, bson.M, bool) {
 	if result != nil && result["ok"] != 0 {
 		return nil, result, true
 	}
-
 	// if not ok , exec initializing
 	var mongoNodeInfo []bson.M
 	for node := 0; node < int(*params.ClusterNodes); node++ {
@@ -171,16 +177,12 @@ func CheckReplSetGetStatus(params MongoDBParameters) (error, bson.M, bool) {
 		"_id":     params.Name,
 		"members": mongoNodeInfo,
 	}
+	log.Info("Executing command replSetInitiate")
 	response := client.Database(dbName).RunCommand(context.Background(), bson.M{"replSetInitiate": config})
 	if response.Err() != nil {
 		return response.Err(), result, false
 	}
 	params.Initialed = true
-	defer func() {
-		if err := client.Disconnect(context.Background()); err != nil {
-			return
-		}
-	}()
 
 	return CheckReplSetGetStatus(params)
 }

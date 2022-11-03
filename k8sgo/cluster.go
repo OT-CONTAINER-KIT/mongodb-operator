@@ -1,8 +1,10 @@
 package k8sgo
 
 import (
+	"context"
 	"fmt"
 	"github.com/thanhpk/randstr"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	opstreelabsinv1alpha1 "mongodb-operator/api/v1alpha1"
 )
 
@@ -180,6 +182,19 @@ func getMongoDBClusterParams(cr *opstreelabsinv1alpha1.MongoDBCluster) statefulS
 	if cr.Spec.Security.TLS.Enabled {
 		params.TLS = true
 		params.ContainerParams.TLS = true
+		// get certificate hash
+		if tlsSecret, err := generateK8sClient().CoreV1().Secrets(params.Namespace).Get(context.TODO(), appName+"-server-certificate-key", metav1.GetOptions{}); err != nil {
+			params.ContainerParams.CertificateHash = ""
+		} else {
+			params.ContainerParams.CertificateHash = generateHash(tlsSecret.Data["tls.crt"])
+		}
+	}
+
+	// get configmap hash
+	if configMap, err := generateK8sClient().CoreV1().ConfigMaps(params.Namespace).Get(context.TODO(), *cr.Spec.MongoDBAdditionalConfig, metav1.GetOptions{}); err != nil {
+		params.ContainerParams.ConfigMapHash = ""
+	} else {
+		params.ContainerParams.ConfigMapHash = generateHash([]byte(configMap.Data["mongo.yaml"]))
 	}
 
 	return params

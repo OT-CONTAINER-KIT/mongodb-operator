@@ -57,12 +57,12 @@ data:
   mongo.yaml: |
     net.bindIpAll: true
     net.port: 27017
-    net.maxIncomingConnections: 10000
+    net.maxIncomingConnections: 20000
     storage.wiredTiger.engineConfig.journalCompressor: zlib  # 数据压缩算法，不可更改
     replication.replSetName: mongodb
     replication.enableMajorityReadConcern: true
     operationProfiling.mode: "off"
-    operationProfiling.slowOpThresholdMs: 200
+    operationProfiling.slowOpThresholdMs: 300
     security.keyFile: /mongo-key/mongo-keyfile
     storage.dbPath: /data/db
     processManagement.pidFilePath: /tmp/mongod.pid
