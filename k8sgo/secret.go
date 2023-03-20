@@ -57,8 +57,9 @@ func getMongoDBPassword(params secretsParameters) string {
 	return value
 }
 
-//nolint:gosimple
 // CheckSecretExist is a method to check secret exists
+//
+//nolint:gosimple
 func CheckSecretExist(namespace string, secret string) bool {
 	_, err := generateK8sClient().CoreV1().Secrets(namespace).Get(context.TODO(), secret, metav1.GetOptions{})
 	if err != nil {

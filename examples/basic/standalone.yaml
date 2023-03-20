@@ -12,7 +12,7 @@ spec:
     storageSize: 1Gi
     storageClass: gp2
   mongoDBSecurity:
-    mongoDBAdminUser: admin
+    mongoDBAdminUser: admin 
     secretRef:
       name: mongodb-secret
       key: password
