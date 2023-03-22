@@ -98,6 +98,32 @@ rules:
   - patch
   - update
 - apiGroups:
+  - opstreelabs.in
+  resources:
+  - mongodbusers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - opstreelabs.in
+  resources:
+  - mongodbusers/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - opstreelabs.in
+  resources:
+  - mongodbusers/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - policy
   resources:
   - poddisruptionbudgets

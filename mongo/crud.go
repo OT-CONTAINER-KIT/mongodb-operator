@@ -11,8 +11,8 @@ func createMongoDBClient() (*mongo.Client, error) {
 	// Get the MongoDB connection details from the operator config
 	mongoURI := "mongodb://localhost:27017"
 
-    // i need 
-    //user -> adminuser and password 
+	// i need
+	//user -> adminuser and password
 	// Create a new MongoDB client
 	clientOptions := options.Client().ApplyURI(mongoURI)
 	client, err := mongo.Connect(context.Background(), clientOptions)
@@ -20,5 +20,5 @@ func createMongoDBClient() (*mongo.Client, error) {
 		return nil, err
 	}
 
-	return client, nil 
+	return client, nil
 }

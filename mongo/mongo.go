@@ -52,7 +52,7 @@ func initiateMongoClusterClient(params MongoDBParameters) *mongo.Client {
 		logger.Error(err, "Unable to establish connection with MongoDB Cluster")
 	}
 	return client
-} 
+}
 
 // DiscconnectMongoClient is a method to disconnect MongoDB client
 func DiscconnectMongoClient(client *mongo.Client) error {
