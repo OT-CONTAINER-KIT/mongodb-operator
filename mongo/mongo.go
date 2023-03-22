@@ -1,4 +1,4 @@
-package mongogo
+package mongo
 
 import (
 	"context"
@@ -30,8 +30,8 @@ type MongoDBParameters struct {
 	ClusterNodes *int32
 }
 
-// initiateMongoClient is a method to create client connection with MongoDB
-func initiateMongoClient(params MongoDBParameters) *mongo.Client {
+// InitiateMongoClient is a method to create client connection with MongoDB
+func InitiateMongoClient(params MongoDBParameters) *mongo.Client {
 	logger := logGenerator(params.Name, params.Namespace, "MongoDB Client")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -52,10 +52,10 @@ func initiateMongoClusterClient(params MongoDBParameters) *mongo.Client {
 		logger.Error(err, "Unable to establish connection with MongoDB Cluster")
 	}
 	return client
-}
+} 
 
-// discconnectMongoClient is a method to disconnect MongoDB client
-func discconnectMongoClient(client *mongo.Client) error {
+// DiscconnectMongoClient is a method to disconnect MongoDB client
+func DiscconnectMongoClient(client *mongo.Client) error {
 	defer func() {
 		if err := client.Disconnect(context.Background()); err != nil {
 			return
@@ -72,18 +72,17 @@ func CreateMonitoringUser(params MongoDBParameters) error {
 	if params.SetupType == "cluster" {
 		client = initiateMongoClusterClient(params)
 	} else {
-		client = initiateMongoClient(params)
+		client = InitiateMongoClient(params)
 	}
 	response := client.Database(dbName).RunCommand(context.Background(), bson.D{
 		{Key: "createUser", Value: monitoringUser}, {Key: "pwd", Value: params.Password},
 		{Key: "roles", Value: []bson.M{{"role": "clusterMonitor", "db": "admin"}, {"role": "read", "db": "local"}}}},
 	)
-	
-	
+
 	if response.Err() != nil {
 		return response.Err()
 	}
-	err := discconnectMongoClient(client)
+	err := DiscconnectMongoClient(client)
 	if err != nil {
 		return err
 	}
@@ -98,7 +97,7 @@ func GetMongoDBUser(params MongoDBParameters) (bool, error) {
 	if params.SetupType == "cluster" {
 		client = initiateMongoClusterClient(params)
 	} else {
-		client = initiateMongoClient(params)
+		client = InitiateMongoClient(params)
 	}
 	collection := client.Database("admin").Collection("system.users")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -108,7 +107,7 @@ func GetMongoDBUser(params MongoDBParameters) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	err = discconnectMongoClient(client)
+	err = DiscconnectMongoClient(client)
 	if err != nil {
 		return false, err
 	}
@@ -121,7 +120,7 @@ func GetMongoDBUser(params MongoDBParameters) (bool, error) {
 // InitiateMongoClusterRS is a method to create MongoDB cluster
 func InitiateMongoClusterRS(params MongoDBParameters) error {
 	var mongoNodeInfo []bson.M
-	client := initiateMongoClient(params)
+	client := InitiateMongoClient(params)
 	for node := 0; node < int(*params.ClusterNodes); node++ {
 		mongoNodeInfo = append(mongoNodeInfo, bson.M{"_id": node, "host": GetMongoNodeInfo(params, node)})
 	}
@@ -134,7 +133,7 @@ func InitiateMongoClusterRS(params MongoDBParameters) error {
 	if response.Err() != nil {
 		return response.Err()
 	}
-	err := discconnectMongoClient(client)
+	err := DiscconnectMongoClient(client)
 	if err != nil {
 		return err
 	}
@@ -143,7 +142,7 @@ func InitiateMongoClusterRS(params MongoDBParameters) error {
 
 // CheckMongoClusterInitialized is a method to check if cluster is initailized or not
 func CheckMongoClusterInitialized(params MongoDBParameters) (bool, error) {
-	client := initiateMongoClient(params)
+	client := InitiateMongoClient(params)
 	var result bson.M
 	err := client.Database(dbName).RunCommand(context.Background(), bson.D{{Key: "replSetGetStatus", Value: 1}}).Decode(&result)
 	if err != nil {

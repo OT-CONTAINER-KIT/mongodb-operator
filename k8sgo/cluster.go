@@ -2,8 +2,9 @@ package k8sgo
 
 import (
 	"fmt"
-	"github.com/thanhpk/randstr"
 	opstreelabsinv1alpha1 "mongodb-operator/api/v1alpha1"
+
+	"github.com/thanhpk/randstr"
 )
 
 // CreateMongoClusterService is a method to create service for mongodb cluster
@@ -90,7 +91,7 @@ func CreateMongoClusterMonitoringSecret(cr *opstreelabsinv1alpha1.MongoDBCluster
 }
 
 // getMongoDBClusterSecretParams is a method to create secret for MongoDB Monitoring
-func getMongoDBClusterSecretParams(cr *opstreelabsinv1alpha1.MongoDBCluster) secretsParameters {
+func getMongoDBClusterSecretParams(cr *opstreelabsinv1alpha1.MongoDBCluster) SecretsParameters {
 	password := randstr.String(16)
 	appName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "cluster-monitoring")
 	labels := map[string]string{
@@ -98,7 +99,7 @@ func getMongoDBClusterSecretParams(cr *opstreelabsinv1alpha1.MongoDBCluster) sec
 		"mongodb_setup": "cluster",
 		"role":          "cluster",
 	}
-	params := secretsParameters{
+	params := SecretsParameters{
 		SecretsMeta: generateObjectMetaInformation(appName, cr.Namespace, labels, generateAnnotations()),
 		OwnerDef:    mongoClusterAsOwner(cr),
 		Namespace:   cr.Namespace,

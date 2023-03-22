@@ -46,6 +46,7 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	instance := &opstreelabsinv1alpha1.MongoDBCluster{}
 	err := r.Client.Get(context.TODO(), req.NamespacedName, instance)
 	if err != nil {
+
 		if errors.IsNotFound(err) {
 			return ctrl.Result{RequeueAfter: time.Second * 10}, nil
 		}
