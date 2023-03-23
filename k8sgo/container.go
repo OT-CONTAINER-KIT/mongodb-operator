@@ -58,7 +58,7 @@ func getVolumeMount(name string, persistenceEnabled *bool, additionalConfig *str
 		volumeMounts = []corev1.VolumeMount{
 			{
 				Name:      name,
-				MountPath: "/data/db",
+				MountPath: "/data/db", 
 			},
 		}
 	}
@@ -148,7 +148,9 @@ func getMongoDBProbe() *corev1.Probe {
 		PeriodSeconds:       15,
 		FailureThreshold:    5,
 		TimeoutSeconds:      5,
-		Handler: corev1.Handler{
+
+		ProbeHandler: corev1.ProbeHandler{
+
 			Exec: &corev1.ExecAction{
 				Command: []string{
 					"mongo",
@@ -167,7 +169,7 @@ func getMonitoringProbe() *corev1.Probe {
 		PeriodSeconds:       15,
 		FailureThreshold:    5,
 		TimeoutSeconds:      5,
-		Handler: corev1.Handler{
+		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
 				Port: intstr.FromInt(9216),
 				Path: "/metrics",

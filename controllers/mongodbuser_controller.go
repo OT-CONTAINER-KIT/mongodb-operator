@@ -86,7 +86,7 @@ func (r *MongoDBUserReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 		mongoClient = mongoc.InitiateMongoClient(params)
 
-	} else if mongodbUser.Spec.Type == "cluster" {
+	} else if mongodbUser.Spec.Type == "replicaSet" {
 		err = r.Client.Get(context.TODO(), req.NamespacedName, mongodbCluster)
 
 		if err != nil {
@@ -99,7 +99,7 @@ func (r *MongoDBUserReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		passwordParams := k8sgo.SecretsParameters{Name: mongodbCluster.ObjectMeta.Name, Namespace: mongodbCluster.Namespace, SecretName: *mongodbCluster.Spec.MongoDBSecurity.SecretRef.Name, SecretKey: *mongodbCluster.Spec.MongoDBSecurity.SecretRef.Key}
 		password := k8sgo.GetMongoDBPassword(passwordParams)
 		// mongoURL := "mongodb://", mongodbCluster.Spec.MongoDBSecurity.MongoDBAdminUser, ":", password, "@"
-		mongoURL := "mongodb://" + mongodb.Spec.MongoDBSecurity.MongoDBAdminUser + ":" + password + "@"
+		mongoURL := "mongodb://" + mongodbCluster.Spec.MongoDBSecurity.MongoDBAdminUser + ":" + password + "@"
 
 		params = mongoc.MongoDBParameters{
 

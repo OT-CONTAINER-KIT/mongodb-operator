@@ -42,7 +42,7 @@ type MongoDBUserSpec struct {
 	Password string          `json:"password,omitempty"`
 	Database string          `json:"database,omitempty"`
 	Type     MongoDBUserType `json:"type,omitempty"`
-	Role     string          `json:"role,omitempty"` 
+	Role     string          `json:"role,omitempty"`
 }
 
 // MongoDBUserStatus defines the observed state of MongoDBUser
