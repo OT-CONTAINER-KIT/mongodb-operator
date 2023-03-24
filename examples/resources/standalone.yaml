@@ -33,7 +33,7 @@ metadata:
 spec:
   kubernetesConfig:
     
-    image: quay.io/opstree/mongo:v5.0.6
+    image: quay.io/opstree/mongo:v5.0.6 
     imagePullPolicy: IfNotPresent
     nodeSelector: {}
     # affinity: {} 
@@ -44,7 +44,7 @@ spec:
     resources:
       requests:
         cpu: 101m 
-        memory: 328Mi 
+        memory: 328Mi  
       limits:
         cpu: 101m
         memory: 328Mi

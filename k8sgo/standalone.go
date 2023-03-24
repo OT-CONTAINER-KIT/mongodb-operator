@@ -4,7 +4,7 @@ import (
 	"fmt"
 	opstreelabsinv1alpha1 "mongodb-operator/api/v1alpha1"
 
-	"github.com/thanhpk/randstr" 
+	"github.com/thanhpk/randstr"
 )
 
 // CreateMongoStandaloneService is a method to create standalone service for MongoDB

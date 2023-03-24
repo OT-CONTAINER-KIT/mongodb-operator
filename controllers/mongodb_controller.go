@@ -66,10 +66,13 @@ func (r *MongoDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{RequeueAfter: time.Second * 10}, err
 	}
 
-	if !k8sgo.CheckSecretExist(instance.Namespace, fmt.Sprintf("%s-%s", instance.ObjectMeta.Name, "standalone-monitoring")) {
-		err = k8sgo.CreateMongoMonitoringSecret(instance)
-		if err != nil {
-			return ctrl.Result{RequeueAfter: time.Second * 10}, err
+	if instance.Spec.MongoDBMonitoring != nil {
+
+		if !k8sgo.CheckSecretExist(instance.Namespace, fmt.Sprintf("%s-%s", instance.ObjectMeta.Name, "standalone-monitoring")) {
+			err = k8sgo.CreateMongoMonitoringSecret(instance)
+			if err != nil {
+				return ctrl.Result{RequeueAfter: time.Second * 10}, err
+			}
 		}
 	}
 
@@ -83,21 +86,24 @@ func (r *MongoDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err != nil {
 		return ctrl.Result{RequeueAfter: time.Second * 10}, err
 	}
-	// mongoDBSTS, err := k8sgo.GetStateFulSet(instance.Namespace, fmt.Sprintf("%s-%s", instance.ObjectMeta.Name, "standalone"))
-	// if err != nil {
-	// 	return ctrl.Result{RequeueAfter: time.Second * 10}, err
-	// }
-	// fmt.Print(mongoDBSTS)
-	// if int(mongoDBSTS.Status.ReadyReplicas) != int(1) {
-	// 	return ctrl.Result{RequeueAfter: time.Second * 60}, nil
-	// } else {
-	// 	if !k8sgo.CheckMonitoringUser(instance) {
-	// 		err = k8sgo.CreateMongoDBMonitoringUser(instance)
-	// 		if err != nil {
-	// 			return ctrl.Result{RequeueAfter: time.Second * 10}, err
-	// 		}
-	// 	}
-	// }
+
+	if instance.Spec.MongoDBMonitoring != nil {
+		mongoDBSTS, err := k8sgo.GetStateFulSet(instance.Namespace, fmt.Sprintf("%s-%s", instance.ObjectMeta.Name, "standalone"))
+		if err != nil {
+			return ctrl.Result{RequeueAfter: time.Second * 10}, err
+		}
+		fmt.Print(mongoDBSTS)
+		if int(mongoDBSTS.Status.ReadyReplicas) != int(1) {
+			return ctrl.Result{RequeueAfter: time.Second * 60}, nil
+		} else {
+			if !k8sgo.CheckMonitoringUser(instance) {
+				err = k8sgo.CreateMongoDBMonitoringUser(instance)
+				if err != nil {
+					return ctrl.Result{RequeueAfter: time.Second * 10}, err
+				}
+			}
+		}
+	}
 	return ctrl.Result{RequeueAfter: time.Second * 10}, nil
 }
 

@@ -58,7 +58,7 @@ func getVolumeMount(name string, persistenceEnabled *bool, additionalConfig *str
 		volumeMounts = []corev1.VolumeMount{
 			{
 				Name:      name,
-				MountPath: "/data/db", 
+				MountPath: "/data/db",
 			},
 		}
 	}
