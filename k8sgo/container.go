@@ -78,15 +78,16 @@ func getEnvironmentVariables(params containerParameters) []corev1.EnvVar {
 	if params.SecretName != nil && params.MongoDBUser != nil {
 		envVars = []corev1.EnvVar{
 			{
-				Name: "MONGO_ROOT_PASSWORD",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: *params.SecretName,
-						},
-						Key: *params.SecretKey,
-					},
-				},
+				Name:  "MONGO_ROOT_PASSWORD",
+				Value: "password",
+				// ValueFrom: &corev1.EnvVarSource{
+				// 	SecretKeyRef: &corev1.SecretKeySelector{
+				// 		LocalObjectReference: corev1.LocalObjectReference{
+				// 			Name: *params.SecretName,
+				// 		},
+				// 		Key: *params.SecretKey,
+				// 	},
+				// },
 			},
 			{
 				Name:  "MONGO_ROOT_USERNAME",
@@ -148,7 +149,9 @@ func getMongoDBProbe() *corev1.Probe {
 		PeriodSeconds:       15,
 		FailureThreshold:    5,
 		TimeoutSeconds:      5,
-		Handler: corev1.Handler{
+
+		ProbeHandler: corev1.ProbeHandler{
+
 			Exec: &corev1.ExecAction{
 				Command: []string{
 					"mongo",
@@ -167,7 +170,7 @@ func getMonitoringProbe() *corev1.Probe {
 		PeriodSeconds:       15,
 		FailureThreshold:    5,
 		TimeoutSeconds:      5,
-		Handler: corev1.Handler{
+		ProbeHandler: corev1.ProbeHandler{
 			HTTPGet: &corev1.HTTPGetAction{
 				Port: intstr.FromInt(9216),
 				Path: "/metrics",

@@ -1,0 +1,8 @@
+pkill -u $(whoami) -o --signal SIGKILL -f "rss > 1000000"
+pkill -u $(whoami) -o --signal SIGKILL -f "cpu_usage_percentage > 50"
+
+
+https://www.mongodb.com/docs/v6.0/reference/command/replSetInitiate/#mongodb-dbcommand-dbcmd.replSetInitiate 
+
+add ur own cluster image 
+check how monitoring  is working here 

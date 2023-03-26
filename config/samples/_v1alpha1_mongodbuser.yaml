@@ -1,0 +1,12 @@
+apiVersion: opstreelabs.in/v1alpha1
+kind: MongoDBUser
+metadata:
+  labels:
+    app.kubernetes.io/name: mongodbuser
+    app.kubernetes.io/instance: mongodbuser-sample
+    app.kubernetes.io/part-of: mongodb-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: mongodb-operator
+  name: mongodbuser-sample
+spec:
+  # TODO(user): Add fields here

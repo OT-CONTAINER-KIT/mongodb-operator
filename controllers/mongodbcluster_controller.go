@@ -46,6 +46,7 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	instance := &opstreelabsinv1alpha1.MongoDBCluster{}
 	err := r.Client.Get(context.TODO(), req.NamespacedName, instance)
 	if err != nil {
+
 		if errors.IsNotFound(err) {
 			return ctrl.Result{RequeueAfter: time.Second * 10}, nil
 		}
@@ -58,7 +59,7 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		err = k8sgo.CreateMongoClusterMonitoringSecret(instance)
 		if err != nil {
 			return ctrl.Result{RequeueAfter: time.Second * 10}, err
-		}
+		} 
 	}
 	err = k8sgo.CreateMongoClusterSetup(instance)
 	if err != nil {
@@ -86,10 +87,13 @@ func (r *MongoDBClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 			return ctrl.Result{RequeueAfter: time.Second * 10}, err
 		}
 	}
-	if !k8sgo.CheckMongoDBClusterMonitoringUser(instance) {
-		err = k8sgo.CreateMongoDBClusterMonitoringUser(instance)
-		if err != nil {
-			return ctrl.Result{RequeueAfter: time.Second * 10}, err
+	if instance.Spec.MongoDBMonitoring != nil {
+
+		if !k8sgo.CheckMongoDBClusterMonitoringUser(instance) {
+			err = k8sgo.CreateMongoDBClusterMonitoringUser(instance)
+			if err != nil {
+				return ctrl.Result{RequeueAfter: time.Second * 10}, err
+			}
 		}
 	}
 	return ctrl.Result{}, nil

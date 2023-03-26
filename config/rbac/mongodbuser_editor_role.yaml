@@ -1,0 +1,31 @@
+# permissions for end users to edit mongodbusers.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: mongodbuser-editor-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: mongodb-operator
+    app.kubernetes.io/part-of: mongodb-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: mongodbuser-editor-role
+rules:
+- apiGroups:
+  - opstreelabs.in
+  resources:
+  - mongodbusers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - opstreelabs.in
+  resources:
+  - mongodbusers/status
+  verbs:
+  - get

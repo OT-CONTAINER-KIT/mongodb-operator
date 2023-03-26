@@ -1,0 +1,13 @@
+---
+apiVersion: opstreelabs.in/v1alpha1
+kind: MongoDBUser
+metadata:
+  name: mongodbuser
+spec:
+  user: opstreeuser
+  type: standalone
+  password: loveopstree 
+  database: mydb
+  role: ReadWrite
+
+  

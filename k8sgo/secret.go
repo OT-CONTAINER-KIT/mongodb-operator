@@ -2,12 +2,13 @@ package k8sgo
 
 import (
 	"context"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// secretsParameters is an interface for secret input
-type secretsParameters struct {
+// SecretsParameters is an interface for secret input
+type SecretsParameters struct {
 	Name        string
 	OwnerDef    metav1.OwnerReference
 	Password    string
@@ -20,7 +21,7 @@ type secretsParameters struct {
 }
 
 // CreateSecret is a method to create secret
-func CreateSecret(params secretsParameters) error {
+func CreateSecret(params SecretsParameters) error {
 	secretDef := generateSecret(params)
 	logger := logGenerator(params.Name, params.Namespace, "Secret")
 	_, err := generateK8sClient().CoreV1().Secrets(params.Namespace).Create(context.TODO(), secretDef, metav1.CreateOptions{})
@@ -33,7 +34,7 @@ func CreateSecret(params secretsParameters) error {
 }
 
 // generateSecret is a method that will generate a secret interface
-func generateSecret(params secretsParameters) *corev1.Secret {
+func generateSecret(params SecretsParameters) *corev1.Secret {
 	password := []byte(params.Password)
 	secret := &corev1.Secret{
 		TypeMeta:   generateMetaInformation("Secret", "v1"),
@@ -46,8 +47,8 @@ func generateSecret(params secretsParameters) *corev1.Secret {
 	return secret
 }
 
-// getMongoDBPassword method will return the mongodb password
-func getMongoDBPassword(params secretsParameters) string {
+// GetMongoDBPassword method will return the mongodb password
+func GetMongoDBPassword(params SecretsParameters) string {
 	logger := logGenerator(params.Name, params.Namespace, "Secret")
 	secretName, err := generateK8sClient().CoreV1().Secrets(params.Namespace).Get(context.TODO(), params.SecretName, metav1.GetOptions{})
 	if err != nil {
@@ -57,8 +58,9 @@ func getMongoDBPassword(params secretsParameters) string {
 	return value
 }
 
-//nolint:gosimple
 // CheckSecretExist is a method to check secret exists
+//
+//nolint:gosimple
 func CheckSecretExist(namespace string, secret string) bool {
 	_, err := generateK8sClient().CoreV1().Secrets(namespace).Get(context.TODO(), secret, metav1.GetOptions{})
 	if err != nil {

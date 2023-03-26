@@ -1,25 +1,71 @@
+# ---
+# apiVersion: opstreelabs.in/v1alpha1
+# kind: MongoDB
+# metadata:
+#   name: mongodb
+# spec:
+#   kubernetesConfig:
+    
+#     image: quay.io/opstree/mongo:v5.0
+#     imagePullPolicy: IfNotPresent
+#     resources:
+#       requests:
+#         cpu: 101m 
+#         memory: 328Mi 
+#       limits:
+#         cpu: 101m
+#         memory: 328Mi
+#   storage:
+#     accessModes: ["ReadWriteOnce"]
+#     storageSize: 1Gi
+#     storageClass: hostpath
+#   mongoDBSecurity:
+#     mongoDBAdminUser: admin
+#     secretRef:
+#       name: mongodb-secret
+#       key: password
+
 ---
 apiVersion: opstreelabs.in/v1alpha1
 kind: MongoDB
 metadata:
-  name: mongodb
+  name: mongodb 
 spec:
   kubernetesConfig:
-    image: quay.io/opstree/mongo:v5.0
+    
+    image: quay.io/opstree/mongo:v5.0.6 
     imagePullPolicy: IfNotPresent
+    nodeSelector: {}
+    # affinity: {} 
+    tolerations: []
+    priorityClassName: ""
+    securityContext: 
+      fsGroup: 1001
     resources:
       requests:
-        cpu: 101m
-        memory: 328Mi
+        cpu: 101m 
+        memory: 328Mi  
       limits:
         cpu: 101m
         memory: 328Mi
   storage:
     accessModes: ["ReadWriteOnce"]
     storageSize: 1Gi
-    storageClass: csi-cephfs-sc
+    storageClass: civo-volume
+  # mongoDBMonitoring:
+  #     enableExporter: true
+  #     image: quay.io/opstree/mongo:v5.0
+  #     imagePullPolicy: IfNotPresent
+  #     resources: {}
+
+
+
   mongoDBSecurity:
     mongoDBAdminUser: admin
     secretRef:
       name: mongodb-secret
       key: password
+  # mongoDBAdditionalConfig: mongodb-additional-config    
+  # mongoDBAdditionalConfig: "./data"  
+
+

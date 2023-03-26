@@ -1,5 +1,7 @@
 # Build the manager binary
 FROM golang:1.17 as builder
+ARG TARGETOS
+ARG TARGETARCH
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -27,3 +29,5 @@ COPY --from=builder /workspace/manager .
 USER 65532:65532
 
 ENTRYPOINT ["/manager"]
+
+

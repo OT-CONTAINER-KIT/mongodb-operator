@@ -2,8 +2,9 @@ package k8sgo
 
 import (
 	"fmt"
-	"github.com/thanhpk/randstr"
 	opstreelabsinv1alpha1 "mongodb-operator/api/v1alpha1"
+
+	"github.com/thanhpk/randstr"
 )
 
 // CreateMongoStandaloneService is a method to create standalone service for MongoDB
@@ -71,7 +72,7 @@ func CreateMongoMonitoringSecret(cr *opstreelabsinv1alpha1.MongoDB) error {
 }
 
 // getMongoDBSecretParams is a method to create secret for MongoDB Monitoring
-func getMongoDBSecretParams(cr *opstreelabsinv1alpha1.MongoDB) secretsParameters {
+func getMongoDBSecretParams(cr *opstreelabsinv1alpha1.MongoDB) SecretsParameters {
 	password := randstr.String(16)
 	appName := fmt.Sprintf("%s-%s", cr.ObjectMeta.Name, "standalone-monitoring")
 	labels := map[string]string{
@@ -79,7 +80,7 @@ func getMongoDBSecretParams(cr *opstreelabsinv1alpha1.MongoDB) secretsParameters
 		"mongodb_setup": "standalone",
 		"role":          "standalone",
 	}
-	params := secretsParameters{
+	params := SecretsParameters{
 		SecretsMeta: generateObjectMetaInformation(appName, cr.Namespace, labels, generateAnnotations()),
 		OwnerDef:    mongoAsOwner(cr),
 		Namespace:   cr.Namespace,

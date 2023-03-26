@@ -13,7 +13,7 @@ spec:
         expr: mongodb_up == 0
         for: 0m
         labels:
-          severity: critical
+          severity: critical 
         annotations:
           summary: MongoDB Down (instance {{ $labels.instance }})
           description: "MongoDB instance is down\n  VALUE = {{ $value }}\n  LABELS = {{ $labels }}"

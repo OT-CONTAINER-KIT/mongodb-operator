@@ -1,0 +1,30 @@
+---
+apiVersion: opstreelabs.in/v1alpha1
+kind: MongoDB
+metadata:
+  name: mongodb
+  labels:
+    app.kubernetes.io/name: mongodb
+    app.kubernetes.io/instance: mongodb
+    app.kubernetes.io/component:  database
+spec:
+  kubernetesConfig:
+    image: quay.io/opstree/mongo
+    securityContext:
+      fsGroup: 1001
+    imagePullPolicy: IfNotPresent
+
+    nodeSelector: {}
+
+    tolerations: []
+    resources: {}
+  # storage:
+  #   accessModes: ["ReadWriteOnce"]
+  #   storageSize: 1Gi
+  #   storageClass: hostpath
+  mongoDBSecurity:
+    mongoDBAdminUser: mongodb-admin
+    secretRef:
+      name: mongodb-secret
+      key: password
+

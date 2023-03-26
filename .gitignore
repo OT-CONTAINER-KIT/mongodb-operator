@@ -24,3 +24,5 @@ testbin/*
 *.swo
 *~
 .hugo_build.lock
+
+doc.txt

@@ -19,9 +19,9 @@ package controllers
 import (
 	"context"
 	"fmt"
+
 	"time"
 
-	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -36,7 +36,6 @@ import (
 // MongoDBReconciler reconciles a MongoDB object
 type MongoDBReconciler struct {
 	client.Client
-	Log    logr.Logger
 	Scheme *runtime.Scheme
 }
 
@@ -49,42 +48,59 @@ type MongoDBReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 func (r *MongoDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	// logger := r.Log.WithFields(log.Fields{
+	// 	"namespace": req.Namespace,
+	// 	"name":      req.Name,
+	// })
 	instance := &opstreelabsinv1alpha1.MongoDB{}
 	err := r.Client.Get(context.TODO(), req.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
+			// logger.Infof("MongoDB resource not found, will retry after 10 seconds")
 			return ctrl.Result{RequeueAfter: time.Second * 10}, nil
 		}
+		// r.Log.Error(err, "Error fetching instance", "namespace", req.Namespace, "name", req.Name)
 		return ctrl.Result{RequeueAfter: time.Second * 10}, err
 	}
 	if err := controllerutil.SetControllerReference(instance, instance, r.Scheme); err != nil {
 		return ctrl.Result{RequeueAfter: time.Second * 10}, err
 	}
-	if !k8sgo.CheckSecretExist(instance.Namespace, fmt.Sprintf("%s-%s", instance.ObjectMeta.Name, "standalone-monitoring")) {
-		err = k8sgo.CreateMongoMonitoringSecret(instance)
-		if err != nil {
-			return ctrl.Result{RequeueAfter: time.Second * 10}, err
+
+	if instance.Spec.MongoDBMonitoring != nil { 
+
+		if !k8sgo.CheckSecretExist(instance.Namespace, fmt.Sprintf("%s-%s", instance.ObjectMeta.Name, "standalone-monitoring")) {
+			err = k8sgo.CreateMongoMonitoringSecret(instance)
+			if err != nil {
+				return ctrl.Result{RequeueAfter: time.Second * 10}, err
+			}
 		}
 	}
+
+	// r.Log.Info("creating standalone")
 	err = k8sgo.CreateMongoStandaloneSetup(instance)
 	if err != nil {
 		return ctrl.Result{RequeueAfter: time.Second * 10}, err
 	}
+
 	err = k8sgo.CreateMongoStandaloneService(instance)
 	if err != nil {
 		return ctrl.Result{RequeueAfter: time.Second * 10}, err
 	}
-	mongoDBSTS, err := k8sgo.GetStateFulSet(instance.Namespace, fmt.Sprintf("%s-%s", instance.ObjectMeta.Name, "standalone"))
-	if err != nil {
-		return ctrl.Result{RequeueAfter: time.Second * 10}, err
-	}
-	if int(mongoDBSTS.Status.ReadyReplicas) != int(1) {
-		return ctrl.Result{RequeueAfter: time.Second * 60}, nil
-	} else {
-		if !k8sgo.CheckMonitoringUser(instance) {
-			err = k8sgo.CreateMongoDBMonitoringUser(instance)
-			if err != nil {
-				return ctrl.Result{RequeueAfter: time.Second * 10}, err
+
+	if instance.Spec.MongoDBMonitoring != nil {
+		mongoDBSTS, err := k8sgo.GetStateFulSet(instance.Namespace, fmt.Sprintf("%s-%s", instance.ObjectMeta.Name, "standalone"))
+		if err != nil {
+			return ctrl.Result{RequeueAfter: time.Second * 10}, err
+		}
+		fmt.Print(mongoDBSTS)
+		if int(mongoDBSTS.Status.ReadyReplicas) != int(1) {
+			return ctrl.Result{RequeueAfter: time.Second * 60}, nil
+		} else {
+			if !k8sgo.CheckMonitoringUser(instance) {
+				err = k8sgo.CreateMongoDBMonitoringUser(instance)
+				if err != nil {
+					return ctrl.Result{RequeueAfter: time.Second * 10}, err
+				}
 			}
 		}
 	}

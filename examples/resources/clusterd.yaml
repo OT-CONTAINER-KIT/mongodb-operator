@@ -1,6 +1,7 @@
 ---
 apiVersion: opstreelabs.in/v1alpha1
 kind: MongoDBCluster
+
 metadata:
   name: mongodb
 spec:
@@ -9,7 +10,7 @@ spec:
     image: quay.io/opstree/mongo:v5.0
     imagePullPolicy: IfNotPresent
     resources:
-      requests:
+      requests: 
         cpu: 101m
         memory: 328Mi
       limits:
@@ -18,7 +19,7 @@ spec:
   storage:
     accessModes: ["ReadWriteOnce"]
     storageSize: 1Gi
-    storageClass: csi-cephfs-sc
+    storageClass: civo-volume
   mongoDBSecurity:
     mongoDBAdminUser: admin
     secretRef:
