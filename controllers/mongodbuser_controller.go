@@ -3,13 +3,13 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	opstreelabsinv1alpha1 "mongodb-operator/api/v1alpha1"
 	k8sgo "mongodb-operator/k8sgo"
 	mongoc "mongodb-operator/mongo"
 
-	"github.com/go-logr/logr"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -22,7 +22,6 @@ import (
 type MongoDBUserReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
-	Log    logr.Logger
 }
 
 //+kubebuilder:rbac:groups=opstreelabs.in,resources=mongodbusers,verbs=get;list;watch;create;update;patch;delete
@@ -39,7 +38,7 @@ type MongoDBUserReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.14.1/pkg/reconcile
 func (r *MongoDBUserReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = r.Log.WithValues("mongodbuser", req.NamespacedName)
+	// _ = r.Log.WithValues("mongodbuser", req.NamespacedName)
 
 	mongodbUser := &opstreelabsinv1alpha1.MongoDBUser{}
 	mongodb := &opstreelabsinv1alpha1.MongoDB{}
@@ -64,7 +63,7 @@ func (r *MongoDBUserReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		err = r.Client.Get(context.TODO(), req.NamespacedName, mongodb)
 
 		if err != nil {
-
+ 
 			if errors.IsNotFound(err) {
 				return ctrl.Result{RequeueAfter: time.Second * 10}, nil
 			}
@@ -73,7 +72,8 @@ func (r *MongoDBUserReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		passwordParams := k8sgo.SecretsParameters{Name: mongodb.ObjectMeta.Name, Namespace: mongodb.Namespace, SecretName: *mongodb.Spec.MongoDBSecurity.SecretRef.Name, SecretKey: *mongodb.Spec.MongoDBSecurity.SecretRef.Key}
 		password := k8sgo.GetMongoDBPassword(passwordParams)
 		// mongoURL := "mongodb://" + mongodb.Spec.MongoDBSecurity.MongoDBAdminUser + ":", password, "@"
-		mongoURL := "mongodb://" + mongodb.Spec.MongoDBSecurity.MongoDBAdminUser + ":" + password + "@"
+		serviceName := fmt.Sprintf("%s-%s.%s", mongodb.ObjectMeta.Name, "standalone", mongodb.Namespace)
+		mongoURL := fmt.Sprintf("mongodb://%s:%s@%s:27017/", mongodb.Spec.MongoDBSecurity.MongoDBAdminUser, password, serviceName)
 
 		params = mongoc.MongoDBParameters{
 
@@ -98,12 +98,30 @@ func (r *MongoDBUserReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 		passwordParams := k8sgo.SecretsParameters{Name: mongodbCluster.ObjectMeta.Name, Namespace: mongodbCluster.Namespace, SecretName: *mongodbCluster.Spec.MongoDBSecurity.SecretRef.Name, SecretKey: *mongodbCluster.Spec.MongoDBSecurity.SecretRef.Key}
 		password := k8sgo.GetMongoDBPassword(passwordParams)
-		// mongoURL := "mongodb://", mongodbCluster.Spec.MongoDBSecurity.MongoDBAdminUser, ":", password, "@"
-		mongoURL := "mongodb://" + mongodbCluster.Spec.MongoDBSecurity.MongoDBAdminUser + ":" + password + "@"
+		
 
+		mongoParams := mongoc.MongoDBParameters{
+		Namespace: mongodbCluster.Namespace,
+		Name:      mongodbCluster.ObjectMeta.Name,
+		UserName:  &mongodbUser.Spec.User,
+		SetupType: "cluster",
+	}
+
+		mongoURL := []string{"mongodb://", mongodbCluster.Spec.MongoDBSecurity.MongoDBAdminUser, ":", password, "@"}
+	for node := 0; node < int(*mongodbCluster.Spec.MongoDBClusterSize); node++ {
+		if node != int(*mongodbCluster.Spec.MongoDBClusterSize) {
+			mongoURL = append(mongoURL, fmt.Sprintf("%s,", mongoc.GetMongoNodeInfo(mongoParams, node)))
+		} else {
+			mongoURL = append(mongoURL, mongoc.GetMongoNodeInfo(mongoParams, node))
+		}
+	}
+	mongoURL = append(mongoURL, fmt.Sprintf("/?replicaSet=%s", mongodbCluster.ObjectMeta.Name))
+	mongoString := strings.Join(mongoURL, "")
+
+    
 		params = mongoc.MongoDBParameters{
 
-			MongoURL:  mongoURL,
+			MongoURL:  mongoString,
 			SetupType: "cluster",
 			Namespace: mongodbUser.Namespace,
 			Name:      mongodbUser.Name,

@@ -78,15 +78,16 @@ func getEnvironmentVariables(params containerParameters) []corev1.EnvVar {
 	if params.SecretName != nil && params.MongoDBUser != nil {
 		envVars = []corev1.EnvVar{
 			{
-				Name: "MONGO_ROOT_PASSWORD",
-				ValueFrom: &corev1.EnvVarSource{
-					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: *params.SecretName,
-						},
-						Key: *params.SecretKey,
-					},
-				},
+				Name:  "MONGO_ROOT_PASSWORD",
+				Value: "password",
+				// ValueFrom: &corev1.EnvVarSource{
+				// 	SecretKeyRef: &corev1.SecretKeySelector{
+				// 		LocalObjectReference: corev1.LocalObjectReference{
+				// 			Name: *params.SecretName,
+				// 		},
+				// 		Key: *params.SecretKey,
+				// 	},
+				// },
 			},
 			{
 				Name:  "MONGO_ROOT_USERNAME",

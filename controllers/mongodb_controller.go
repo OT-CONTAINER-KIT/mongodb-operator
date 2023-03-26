@@ -66,7 +66,7 @@ func (r *MongoDBReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 		return ctrl.Result{RequeueAfter: time.Second * 10}, err
 	}
 
-	if instance.Spec.MongoDBMonitoring != nil {
+	if instance.Spec.MongoDBMonitoring != nil { 
 
 		if !k8sgo.CheckSecretExist(instance.Namespace, fmt.Sprintf("%s-%s", instance.ObjectMeta.Name, "standalone-monitoring")) {
 			err = k8sgo.CreateMongoMonitoringSecret(instance)

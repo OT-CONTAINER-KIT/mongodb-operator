@@ -141,7 +141,7 @@ func CheckMongoDBClusterMonitoringUser(cr *opstreelabsinv1alpha1.MongoDBCluster)
 // CheckMonitoringUser is a method to check if monitoring user exists in MongoDB
 func CheckMonitoringUser(cr *opstreelabsinv1alpha1.MongoDB) bool {
 	logger := logGenerator(cr.ObjectMeta.Name, cr.Namespace, "MongoDB Monitoring User")
-	serviceName := fmt.Sprintf("%s-%s.%s", cr.ObjectMeta.Name, "standalone", cr.Namespace)
+	serviceName := fmt.Sprintf("%s-%s.%s", cr.ObjectMeta.Name, "standalone", cr.Namespace) 
 	passwordParams := SecretsParameters{Name: cr.ObjectMeta.Name, Namespace: cr.Namespace, SecretName: *cr.Spec.MongoDBSecurity.SecretRef.Name, SecretKey: *cr.Spec.MongoDBSecurity.SecretRef.Key}
 	password := GetMongoDBPassword(passwordParams)
 	monitoringUser := "monitoring"
