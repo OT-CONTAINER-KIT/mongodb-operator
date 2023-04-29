@@ -3,12 +3,13 @@ package mongogo
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/go-logr/logr"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"time"
 )
 
 var log = logf.Log.WithName("controller_mongo")
@@ -63,8 +64,9 @@ func discconnectMongoClient(client *mongo.Client) error {
 	return nil
 }
 
-//nolint:govet
 // CreateMonitoringUser is a method to create monitoring user inside MongoDB
+//
+//nolint:govet
 func CreateMonitoringUser(params MongoDBParameters) error {
 	var client *mongo.Client
 	if params.SetupType == "cluster" {
@@ -73,9 +75,11 @@ func CreateMonitoringUser(params MongoDBParameters) error {
 		client = initiateMongoClient(params)
 	}
 	response := client.Database(dbName).RunCommand(context.Background(), bson.D{
-		{"createUser", monitoringUser}, {"pwd", params.Password},
-		{"roles", []bson.M{{"role": "clusterMonitor", "db": "admin"}, {"role": "read", "db": "local"}}}},
+		{Key: "createUser", Value: monitoringUser}, {Key: "pwd", Value: params.Password},
+		{Key: "roles", Value: []bson.M{{"role": "clusterMonitor", "db": "admin"}, {"role": "read", "db": "local"}}}},
 	)
+	
+	
 	if response.Err() != nil {
 		return response.Err()
 	}
@@ -86,8 +90,9 @@ func CreateMonitoringUser(params MongoDBParameters) error {
 	return nil
 }
 
-//nolint:govet
 // GetMongoDBUser is a method to check if user exists in MongoDB
+//
+//nolint:govet
 func GetMongoDBUser(params MongoDBParameters) (bool, error) {
 	var client *mongo.Client
 	if params.SetupType == "cluster" {
@@ -99,7 +104,7 @@ func GetMongoDBUser(params MongoDBParameters) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	opts := options.Count().SetMaxTime(2 * time.Second)
-	docsCount, err := collection.CountDocuments(ctx, bson.D{{"user", *params.UserName}}, opts)
+	docsCount, err := collection.CountDocuments(ctx, bson.D{{Key: "user", Value: *params.UserName}}, opts)
 	if err != nil {
 		return false, err
 	}
@@ -124,6 +129,7 @@ func InitiateMongoClusterRS(params MongoDBParameters) error {
 		"_id":     params.Name,
 		"members": mongoNodeInfo,
 	}
+	// command in doc
 	response := client.Database(dbName).RunCommand(context.Background(), bson.M{"replSetInitiate": config})
 	if response.Err() != nil {
 		return response.Err()
